@@ -1,0 +1,345 @@
+import { useState } from 'react'
+import { TEAMS } from '../data/teams.js'
+import { computeQualification, rowStatus } from '../utils/qualification.js'
+import { clinchBadge } from '../utils/clinch.js'
+import { projectKnockout } from '../utils/asItStands.js'
+import { lockedOpponent } from '../utils/opponentClinch.js'
+import { softTiebreaks, TIEBREAK_LABEL } from '../utils/tiebreakNotes.js'
+import { FLAG_BY_TEAM } from '../data/teams.js'
+import { useFollow } from '../context/follow.jsx'
+import GroupGamesModal from './GroupGamesModal.jsx'
+import ScalesIcon from './ScalesIcon.jsx'
+
+const GROUPS = Object.keys(TEAMS)
+
+// Only the top two of each group advance, so there are just two outcomes to mark.
+const STATUS_BADGE = {
+  in: { cls: 'q-in', label: '✓', title: 'Advances to the quarter-finals\n(if current match status holds)' },
+  out: { cls: 'q-out', label: '✕', title: 'Eliminated' },
+}
+
+function Star({ name }) {
+  const { isFollowed, toggle } = useFollow()
+  const on = isFollowed(name)
+  return (
+    <button className={`star${on ? ' on' : ''}`} onClick={() => toggle(name)} aria-pressed={on}
+      aria-label={on ? `Unfollow ${name}` : `Follow ${name}`}
+      title={on ? `Unfollow ${name}` : `Follow ${name}`}>
+      {on ? '★' : '☆'}
+    </button>
+  )
+}
+
+// "As it stands" projection of where this group's current placings would land in
+// the quarter-finals. A provisional snapshot — opponents shift as other groups
+// play. Only 1st and 2nd have a destination: 3rd and 4th are out.
+function AsItStands({ proj, onGoToMatch }) {
+  if (!proj) return null
+  const dest = (label, d, qualifies = true) => {
+    if (!qualifies) return null
+    const team = d?.team
+    const opp = d?.opponent
+    if (!team) return null
+    return (
+      <li className="ais-row" key={label}>
+        <span className="ais-pos">{label}</span>
+        <span className="ais-team">{FLAG_BY_TEAM[team] || ''} {team}</span>
+        <span className="ais-vs">vs</span>
+        <span className="ais-opp">
+          {opp ? `${FLAG_BY_TEAM[opp] || ''} ${opp}` : 'TBD'}
+        </span>
+        {d?.matchNum &&
+          (onGoToMatch ? (
+            <button
+              type="button"
+              className="ais-match ais-match-link"
+              onClick={() => onGoToMatch(d.matchNum)}
+              title={`Show Match ${d.matchNum} on the Bracket`}
+            >
+              M{d.matchNum}
+            </button>
+          ) : (
+            <span className="ais-match">M{d.matchNum}</span>
+          ))}
+      </li>
+    )
+  }
+  return (
+    <div className="as-it-stands">
+      <div className="ais-title">As it stands → Quarter-finals</div>
+      <ul className="ais-list">
+        {dest('1st', proj.first)}
+        {dest('2nd', proj.second)}
+      </ul>
+    </div>
+  )
+}
+
+// ⚖️ shown when a placing was decided by a soft tie-breaker (cards / ranking).
+function TieMark({ tie }) {
+  if (!tie) return null
+  return (
+    <span
+      className="tiebreak-mark"
+      title={`Level with ${tie.vs} on points, goal difference and goals — separated by ${TIEBREAK_LABEL[tie.reason]}${tie.reason === 'conduct' ? ' (best-effort card data)' : ''}`}
+      aria-label={`Separated from ${tie.vs} by ${TIEBREAK_LABEL[tie.reason]}`}
+    >
+      <ScalesIcon />
+    </span>
+  )
+}
+
+function GroupTable({ group, rows, qual, clinch, asItStands, onGoToMatch, onSelectTeam, ties, liveTeams, pausedTeams }) {
+  const { isFollowed } = useFollow()
+  const played = qual.completion[group] || rows.some((r) => r.P > 0)
+  const groupLive = rows.some((r) => liveTeams.has(r.name))
+  const pauseRow = rows.find((r) => pausedTeams.has(r.name))
+  const pauseLabel = pauseRow ? pausedTeams.get(pauseRow.name) : null
+  return (
+    <div className="group-card">
+      <h3 className="group-title">
+        <button
+          type="button"
+          className="group-title-btn"
+          onClick={() => onSelectTeam(group, null)}
+          title={`Show all Group ${group} fixtures & results`}
+        >
+          Group {group}
+        </button>
+        {groupLive &&
+          (pauseLabel ? (
+            <span className="group-delayed" title={`A match in this group is ${pauseLabel.toLowerCase()} — standings are provisional`}>
+              ⏸ {pauseLabel.toUpperCase()}
+            </span>
+          ) : (
+            <span className="group-live" title="A match in this group is in progress — standings are provisional">
+              ● LIVE
+            </span>
+          ))}
+      </h3>
+      <table className="standings-table">
+        <thead>
+          <tr>
+            <th className="col-team">Team</th>
+            <th>P</th><th>W</th><th>D</th><th>L</th>
+            <th>GF</th><th>GA</th><th>GD</th><th className="col-pts">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            // A guaranteed clinch/elimination verdict (if any) is more informative
+            // than the post-completion qualification badge, so it wins when present.
+            const clinched = clinchBadge(clinch?.[r.name])
+            const status = rowStatus(r, group, qual)
+            const badge = status && STATUS_BADGE[status]
+            // Row tint mirrors the badge scale: green = advancing (top two), red =
+            // mathematically eliminated. Plain = still undecided.
+            const c = clinch?.[r.name]
+            const advancing =
+              status === 'in' || c === 'won-group' || c === 'runner-up' || c === 'top2'
+            const rowCls = c === 'eliminated' ? 'eliminated' : advancing ? 'qualifies' : ''
+            return (
+              <tr key={r.name} className={rowCls}>
+                <td className="col-team">
+                  <span className="rank">{r.rank}</span>
+                  <Star name={r.name} />
+                  <span className="team-flag">{r.flag}</span>
+                  <button
+                    type="button"
+                    className={`row-team row-team-btn${isFollowed(r.name) ? ' followed' : ''}`}
+                    onClick={() => onSelectTeam(group, r.name)}
+                    title={`Show Group ${group} fixtures & results`}
+                  >
+                    {r.name}
+                  </button>
+                  <TieMark tie={ties?.get(r.name)} />
+                  {liveTeams.has(r.name) && (
+                    <span
+                      className={`row-live-dot${pausedTeams.has(r.name) ? ' delayed' : ''}`}
+                      title={pausedTeams.has(r.name) ? `${pausedTeams.get(r.name)} — score is provisional` : 'Playing now — score is provisional'}
+                    >
+                      ●
+                    </span>
+                  )}
+                  {clinched ? (
+                    // Wide text verdicts drop to their own line below the name
+                    // (q-wide) so they don't wrap raggedly beside it in the
+                    // narrow 3-across layout. Single-glyph marks stay inline.
+                    <span className={`q-badge q-wide ${clinched.cls}`} title={clinched.title}>
+                      {clinched.label} {clinched.text}
+                    </span>
+                  ) : (
+                    badge && (
+                      <span className={`q-badge ${badge.cls}`} title={badge.title}>
+                        {badge.label}
+                      </span>
+                    )
+                  )}
+                </td>
+                <td>{r.P}</td><td>{r.W}</td><td>{r.D}</td><td>{r.L}</td>
+                <td>{r.GF}</td><td>{r.GA}</td>
+                <td>{r.GD > 0 ? `+${r.GD}` : r.GD}</td>
+                <td className="col-pts">{r.Pts}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {!played && <p className="group-note">No matches played yet</p>}
+      {played && <AsItStands proj={asItStands} onGoToMatch={onGoToMatch} />}
+    </div>
+  )
+}
+
+export default function Standings({ matches, tz, hideScores, clinch, onGoToMatch }) {
+  const [revealed, setRevealed] = useState(false)
+  // The group whose fixtures pop-up is open (set by clicking a team name).
+  const [groupGames, setGroupGames] = useState(null)
+  const onSelectTeam = (group, team) => setGroupGames({ group, team })
+  // "As it stands" quarter-final projection is shown by default; this toggle
+  // (persisted) hides it for those who just want the tables.
+  const [showProjection, setShowProjection] = useState(() => {
+    try {
+      return localStorage.getItem('copa:asItStands') !== '0'
+    } catch {
+      return true
+    }
+  })
+  const toggleProjection = () =>
+    setShowProjection((v) => {
+      const next = !v
+      try {
+        localStorage.setItem('copa:asItStands', next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+
+  if (hideScores && !revealed) {
+    return (
+      <div className="standings-hidden">
+        <p>🙈 Standings are hidden in spoiler-free mode.</p>
+        <button className="reveal-btn" onClick={() => setRevealed(true)}>Reveal standings</button>
+      </div>
+    )
+  }
+
+  const qual = computeQualification(matches)
+  const { perGroup } = projectKnockout(matches)
+
+  // For a team that has CLINCHED a quarter-final place, its projected knockout
+  // matchup (opponent + match number), pulled from the same projection that
+  // powers "As it stands". null unless the team is mathematically through —
+  // we only promise a knockout opponent once a team has actually made it.
+  const teamKnockout = (group, team) => {
+    if (!team) return null
+    const status = clinch?.[team]
+    const through = status === 'won-group' || status === 'runner-up' || status === 'top2'
+    if (!through) return null
+    const row = (qual.groups[group] || []).find((r) => r.name === team)
+    if (!row) return null
+    const proj = perGroup[group] || {}
+    // A 'won-group'/'runner-up' verdict pins the exact finishing position, so use
+    // it directly; otherwise (top2, order not yet split) fall back to the current
+    // standings position for the provisional projection.
+    const dest =
+      status === 'won-group'
+        ? proj.first
+        : status === 'runner-up'
+          ? proj.second
+          : row.rank === 1
+            ? proj.first
+            : proj.second
+    // A mathematically locked opponent (invariant across every remaining outcome)
+    // is authoritative; otherwise fall back to the provisional "as it stands"
+    // projection. `settled` drives whether the pop-up drops the provisional note.
+    const locked = lockedOpponent(matches, team, clinch)
+    return {
+      status,
+      opponent: locked?.opponent || dest?.opponent || null,
+      matchNum: locked?.matchNum || dest?.matchNum || null,
+      settled: Boolean(locked),
+    }
+  }
+
+  // Teams currently playing a group match — the standings + "As it stands" below
+  // reflect their in-progress score, so we blink them to show it's provisional.
+  const liveTeams = new Set()
+  const pausedTeams = new Map() // team -> 'Delayed' | 'Suspended'
+  for (const m of matches) {
+    if (m.stage === 'Group' && m.live) {
+      liveTeams.add(m.t1)
+      liveTeams.add(m.t2)
+      if (m.live.delayed) {
+        const lbl = m.live.label || 'Delayed'
+        pausedTeams.set(m.t1, lbl)
+        pausedTeams.set(m.t2, lbl)
+      }
+    }
+  }
+
+  return (
+    <>
+      <p className="standings-tip">
+        💡 Tip: click a <strong>team name</strong> to see that team’s three group
+        matches — played and upcoming — or a <strong>group title</strong> for the
+        whole group’s schedule.
+      </p>
+      <p className="standings-legend">
+        <span className="legend-swatch" /> Top two advance ·{' '}
+        <span
+          className="legend-tb"
+          tabIndex={0}
+          role="note"
+          aria-label="Tie-breakers: points, then goal difference, then goals scored, then head-to-head, then disciplinary record, then a drawing of lots"
+          data-tip="Tie-breakers: points → goal difference → goals scored → head-to-head → cards → drawing of lots"
+        >
+          tie-breakers
+        </span>{' '}
+        · <span className="q-badge c-won">🥇 Won group</span> /{' '}
+        <span className="q-badge c-silver">🥈 Group runner-up</span> /{' '}
+        <span className="q-badge c-in">✅ Through</span> /{' '}
+        <span className="q-badge c-out">❌ Out</span> mark mathematically clinched outcomes.
+      </p>
+      <div className="standings-toolbar">
+        <button
+          className="ais-toggle"
+          onClick={toggleProjection}
+          aria-pressed={showProjection}
+          title="Show or hide the projected quarter-final matchups under each group"
+        >
+          {showProjection ? '▾ Hide “As it stands”' : '▸ Show “As it stands”'}
+        </button>
+      </div>
+      <div className="standings-grid">
+        {GROUPS.map((g) => (
+          <GroupTable
+            key={g}
+            group={g}
+            rows={qual.groups[g]}
+            qual={qual}
+            clinch={clinch}
+            asItStands={showProjection ? perGroup[g] : null}
+            onGoToMatch={onGoToMatch}
+            onSelectTeam={onSelectTeam}
+            ties={softTiebreaks(g, matches)}
+            liveTeams={liveTeams}
+            pausedTeams={pausedTeams}
+          />
+        ))}
+      </div>
+      {groupGames && (
+        <GroupGamesModal
+          group={groupGames.group}
+          team={groupGames.team}
+          matches={matches}
+          tz={tz}
+          hideScores={hideScores}
+          knockout={teamKnockout(groupGames.group, groupGames.team)}
+          onClose={() => setGroupGames(null)}
+        />
+      )}
+    </>
+  )
+}

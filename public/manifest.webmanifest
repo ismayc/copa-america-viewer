@@ -1,0 +1,16 @@
+{
+  "name": "Euro 2024 — Schedule Viewer",
+  "short_name": "Euro 2024",
+  "description": "All 51 matches of UEFA Euro 2024 in your timezone — scores, group standings, and the knockout bracket.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a1430",
+  "theme_color": "#0a1430",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

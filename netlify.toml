@@ -1,0 +1,22 @@
+[build]
+  # coverage:badge runs the suite and writes public/coverage.json, which vite then
+  # copies into dist/ — that file is the endpoint the README's coverage badge reads.
+  # Netlify builds this repo straight from Git (the site is linked in the Netlify
+  # UI), so this is the only place the badge JSON gets generated for the live site.
+  command = "npm run coverage:badge && npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# Clean URL for the auto-updating calendar subscription feed.
+[[redirects]]
+  from = "/calendar.ics"
+  to = "/.netlify/functions/calendar"
+  status = 200
+
+# Single-page app: serve index.html for any other path.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,44 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { MATCHES as PLAYED } from '../src/data/matches.js'
+import { unscored } from './helpers/tournament.js'
+// This edition is finished, so the committed schedule ships with every result
+// in it. These tests were written against a schedule that had none, so they
+// work from a blank board; `PLAYED` is there when the real results are wanted.
+const MATCHES = unscored(PLAYED)
+
+// The worker module assigns `self.onmessage` at import (in jsdom, self === window).
+// We drive it directly and capture what it posts back via a stubbed postMessage.
+describe('outlook.worker', () => {
+  let posts
+  beforeEach(async () => {
+    posts = []
+    await import('../src/workers/outlook.worker.js') // sets self.onmessage (cached after first import)
+    self.postMessage = (m) => posts.push(m)
+  })
+
+  it('enumerates a settled group stage and posts progress + done (with survivors)', () => {
+    // All group games final → enumeration is trivial (1 outcome) but still runs the
+    // full handler: enumerateOutlook fires its final onProgress (→ a progress post)
+    // and the survivors/requirements pass, then a done message.
+    const complete = MATCHES.map((m) => (m.stage === 'Group' ? { ...m, score: [1, 0] } : m))
+    self.onmessage({ data: complete })
+
+    expect(posts.some((p) => p.type === 'progress')).toBe(true)
+    const done = posts.find((p) => p.type === 'done')
+    expect(done).toBeTruthy()
+    expect(done.result && typeof done.result === 'object').toBe(true)
+    // The exact "still alive" set rides along with the result. There is no
+    // per-team requirements map: that is the Euro sibling's best-thirds
+    // bookkeeping, and this format has no cross-group race to explain.
+    expect(Array.isArray(done.survivors)).toBe(true)
+    expect(done).not.toHaveProperty('requirements')
+  })
+
+  it('posts an error message when enumeration throws', () => {
+    // Bad input → countRemaining(undefined) throws inside the try → error branch.
+    self.onmessage({ data: null })
+    const err = posts.find((p) => p.type === 'error')
+    expect(err).toBeTruthy()
+    expect(typeof err.message).toBe('string')
+  })
+})

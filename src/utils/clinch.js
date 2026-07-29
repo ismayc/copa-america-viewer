@@ -1,0 +1,296 @@
+// Clinch / elimination detection. For each group we enumerate every possible
+// outcome of its remaining matches and ask what is already GUARANTEED for each
+// team — using the exact CONMEBOL tie-breakers in qualification.js (points →
+// goal difference → goals scored → head-to-head → cards).
+//
+// Copa América's format makes this a purely per-group question: only the top two
+// advance and there is no best-third race, so no other group's results can ever
+// change a team's fate. (The Euro sibling needs a whole cross-group bounding
+// apparatus for exactly that reason; here it is simply absent.)
+//
+// Design rule: NEVER over-claim. When a situation is too large to enumerate
+// exactly (early in the group stage there are too many permutations) we fall
+// back to the sound points-only bound, and where even that says nothing we
+// report nothing rather than guess. The goal cap is sized well above any
+// tie-breaker-relevant margin in a 4-team group, so within an enumerated group
+// the answer is exact; the only failure mode is staying silent (conservative),
+// never a false "clinched".
+
+import { TEAMS } from '../data/teams.js'
+import { rankGroup, ADVANCING_PER_GROUP } from './qualification.js'
+
+const GROUPS = Object.keys(TEAMS)
+// Upper bound on enumerated scorelines per group. Sized so the real clinch
+// window (each team with one match left → 2 remaining) is always exact, while
+// larger fan-outs fall back to the points-only bound.
+const SCENARIO_BUDGET = 500000
+
+// A goal cap comfortably larger than any margin that could flip a tie-breaker
+// in a 4-team group: it must exceed the worst current GD gap a team might need
+// to overturn, with headroom. Being generous keeps enumeration EXACT (an under-
+// sized cap could miss a counterexample and falsely claim a clinch).
+export function goalCap(rows) {
+  let maxAbsGD = 0
+  for (const r of rows) maxAbsGD = Math.max(maxAbsGD, Math.abs(r.GD))
+  return Math.max(8, maxAbsGD + 6)
+}
+
+export function scorelinesUpTo(cap) {
+  const out = []
+  for (let a = 0; a <= cap; a++) for (let b = 0; b <= cap; b++) out.push([a, b])
+  return out
+}
+
+// Enumerate every completion of one group's remaining matches and collect, per
+// team, the set of final ranks it can reach.
+function analyzeGroup(group, matches) {
+  const all = matches.filter((m) => m.stage === 'Group' && m.group === group)
+  // A match counts as decided only once it's FINAL. A live match carries a
+  // running score (m.live set), but its outcome isn't settled — so it's treated
+  // as remaining, exactly like an unplayed fixture. Counting a live score as
+  // final would clinch teams a result early (e.g. while they're still winning).
+  const decided = (m) => m.score && !m.live && !m.voided
+  const played = all.filter(decided)
+  const remaining = all.filter((m) => !decided(m))
+  const names = TEAMS[group].map((t) => t.name)
+
+  const cap = goalCap(rankGroup(group, played))
+  const scorelines = scorelinesUpTo(cap)
+  const total = remaining.length === 0 ? 1 : Math.pow(scorelines.length, remaining.length)
+  if (total > SCENARIO_BUDGET) return { group, feasible: false }
+
+  const ranks = {} // name -> Set<rank>
+  for (const n of names) ranks[n] = new Set()
+
+  const assign = new Array(remaining.length)
+  const visit = (i) => {
+    if (i === remaining.length) {
+      const synthetic = played.concat(remaining.map((m, idx) => ({ ...m, score: assign[idx] })))
+      for (const r of rankGroup(group, synthetic)) ranks[r.name].add(r.rank)
+      return
+    }
+    for (const s of scorelines) {
+      assign[i] = s
+      visit(i + 1)
+    }
+  }
+  visit(0)
+
+  return { group, feasible: true, names, ranks }
+}
+
+// Points-only analysis via W/D/L enumeration (always cheap — 3^remaining ≤ 729),
+// independent of the goal-difference scoreline enumeration (which can be too
+// large for a lopsided group with several games left). Gives SOUND rank bounds
+// (ties counted pessimistically).
+function pointsAnalysis(group, matches) {
+  const all = matches.filter((m) => m.stage === 'Group' && m.group === group)
+  const decided = (m) => m.score && !m.live && !m.voided
+  const remaining = all.filter((m) => !decided(m))
+  const names = TEAMS[group].map((t) => t.name)
+  const base = {}
+  for (const n of names) base[n] = 0
+  for (const m of all.filter(decided)) {
+    const [a, b] = m.score
+    if (a > b) base[m.t1] += 3
+    else if (b > a) base[m.t2] += 3
+    else { base[m.t1] += 1; base[m.t2] += 1 }
+  }
+
+  const pess = {} // worst (largest) finishing rank by points, ties AGAINST the team
+  const opt = {} // best (smallest) finishing rank by points, ties FOR the team
+  for (const n of names) { pess[n] = 1; opt[n] = names.length }
+
+  const k = remaining.length
+  for (let mask = 0; mask < 3 ** k; mask++) {
+    const pts = { ...base }
+    let x = mask
+    for (let i = 0; i < k; i++) {
+      const o = x % 3
+      x = Math.floor(x / 3)
+      const m = remaining[i]
+      if (o === 0) pts[m.t1] += 3
+      else if (o === 1) pts[m.t2] += 3
+      else { pts[m.t1] += 1; pts[m.t2] += 1 }
+    }
+    for (const n of names) {
+      let above = 0
+      let equal = 0
+      for (const m of names) {
+        if (m === n) continue
+        if (pts[m] > pts[n]) above++
+        else if (pts[m] === pts[n]) equal++
+      }
+      pess[n] = Math.max(pess[n], 1 + above + equal)
+      opt[n] = Math.min(opt[n], 1 + above)
+    }
+  }
+  return { names, pess, opt }
+}
+
+// Public: map of team name -> clinch status string (or null).
+//   'won-group' — guaranteed to finish 1st in the group
+//   'runner-up' — guaranteed to finish EXACTLY 2nd (the settled group runner-up)
+//   'top2'      — guaranteed top two, but 1st-vs-2nd still open
+//   'eliminated'— cannot advance under any remaining results
+//   null        — still undecided (or not yet computable)
+//
+// Two engines run per group: the exact scoreline enumeration (precise, includes
+// goal difference — but skipped when too large) and the points-only enumeration
+// (always available, sound). Statuses take the precise answer when present and
+// fall back to the sound points bound otherwise, so a verdict still appears for
+// lopsided groups the scoreline pass can't enumerate.
+export function computeClinch(matches) {
+  const status = {}
+  for (const g of GROUPS) {
+    const sa = analyzeGroup(g, matches)
+    const pa = pointsAnalysis(g, matches)
+    for (const name of pa.names) {
+      const feasible = sa.feasible
+      const rset = feasible ? sa.ranks[name] : null
+      const saMax = feasible ? Math.max(...rset) : Infinity
+      const saMin = feasible ? Math.min(...rset) : Infinity
+      const pess = pa.pess[name]
+      const opt = pa.opt[name]
+
+      // 1st place — needs goal-difference precision, OR a strict points lead.
+      if ((feasible && rset.size === 1 && rset.has(1)) || pess === 1) {
+        status[name] = 'won-group'
+        continue
+      }
+      // Exactly 2nd locked → the settled group runner-up. Mirrors won-group for
+      // 1st: precise when the group is enumerable (only rank 2 is reachable),
+      // else a strict points lock (always exactly 2nd, no tie could push it off).
+      if ((feasible && rset.size === 1 && rset.has(2)) || (pess === 2 && opt === 2)) {
+        status[name] = 'runner-up'
+        continue
+      }
+      // Top two but order open — precise, or guaranteed on points alone.
+      if ((feasible && saMax <= ADVANCING_PER_GROUP) || pess <= ADVANCING_PER_GROUP) {
+        status[name] = 'top2'
+        continue
+      }
+
+      // Otherwise: alive only if a top-two finish is still reachable. Trust the
+      // EXACT ranks when the group is enumerable (they account for head-to-head
+      // and goal difference); the optimistic points bound is a fallback for
+      // groups too large to enumerate. Using the points bound when exact data
+      // exists would over-state reachability and miss real eliminations.
+      const canAdvance = feasible ? saMin <= ADVANCING_PER_GROUP : opt <= ADVANCING_PER_GROUP
+      status[name] = canAdvance ? null : 'eliminated'
+    }
+  }
+  return status
+}
+
+// group letter -> the team that has clinched winning it (if any).
+export function groupWinners(clinch) {
+  const winners = {}
+  for (const g of GROUPS) {
+    const w = TEAMS[g].find((t) => clinch?.[t.name] === 'won-group')
+    if (w) winners[g] = w.name
+  }
+  return winners
+}
+
+// Fill in knockout "Winner Group X" placeholders with the team that has clinched
+// that group, so the resolved team flows through to EVERY consumer (bracket,
+// match-detail modal, schedule cards, calendar) — not just one view. Only the
+// group-winner slot is determinable from clinch status; runner-up slots stay as
+// placeholders until results settle them.
+const WINNER_SLOT = /^Winner Group ([A-L])$/
+export function resolveClinchedSlots(matches, clinch) {
+  const winners = groupWinners(clinch)
+  if (!Object.keys(winners).length) return matches
+  const sub = (name) => {
+    const hit = WINNER_SLOT.exec(name)
+    return hit && winners[hit[1]] ? winners[hit[1]] : name
+  }
+  return matches.map((m) => {
+    const t1 = sub(m.t1)
+    const t2 = sub(m.t2)
+    return t1 === m.t1 && t2 === m.t2 ? m : { ...m, t1, t2 }
+  })
+}
+
+// Once a group's matches are ALL final, its runner-up is settled, so fill the
+// "Runner-up Group X" knockout placeholders with the real team — mirroring how
+// resolveClinchedSlots fills the winner. (The winner can clinch earlier, on
+// points alone; a runner-up is only pinned down once results settle, which for
+// a 4-team group means every group match is final.)
+const RUNNERUP_SLOT = /^Runner-up Group ([A-L])$/
+const GROUP_MATCH_COUNT = 6 // 4 teams => 6 matches per group
+const isFinal = (m) => m.score && !m.live && !m.voided
+export function groupRunnersUp(matches) {
+  const out = {}
+  for (const g of GROUPS) {
+    const groupMatches = matches.filter((m) => m.stage === 'Group' && m.group === g)
+    if (groupMatches.length < GROUP_MATCH_COUNT || !groupMatches.every(isFinal)) continue
+    const second = rankGroup(g, groupMatches)[1]
+    if (second) out[g] = second.name
+  }
+  return out
+}
+
+export function resolveRunnerUpSlots(matches) {
+  const runners = groupRunnersUp(matches)
+  if (!Object.keys(runners).length) return matches
+  const sub = (name) => {
+    const hit = RUNNERUP_SLOT.exec(name)
+    return hit && runners[hit[1]] ? runners[hit[1]] : name
+  }
+  return matches.map((m) => {
+    const t1 = sub(m.t1)
+    const t2 = sub(m.t2)
+    return t1 === m.t1 && t2 === m.t2 ? m : { ...m, t1, t2 }
+  })
+}
+
+// Teams whose clinch status newly changed between two sets of results — a new
+// clinch, an upgrade (e.g. top2 → won-group), or a new elimination. Used by the
+// autofill email to announce only what THIS batch of final scores settled
+// (compare the picture with the new results vs without them).
+export function newlyClinched(beforeMatches, afterMatches) {
+  const before = computeClinch(beforeMatches)
+  const after = computeClinch(afterMatches)
+  const changes = []
+  for (const g of GROUPS) {
+    for (const t of TEAMS[g]) {
+      const now = after[t.name]
+      if (now && now !== before[t.name]) changes.push({ team: t.name, group: g, status: now })
+    }
+  }
+  return changes
+}
+
+// One-line announcement for a clinch change, for the notification email.
+export function clinchHeadline({ team, group, status }) {
+  switch (status) {
+    case 'won-group':
+      return `🥇 ${team} have WON Group ${group}`
+    case 'runner-up':
+      return `🥈 ${team} are THROUGH as Group ${group} RUNNERS-UP`
+    case 'top2':
+      return `✅ ${team} are THROUGH to the quarter-finals (top two of Group ${group})`
+    case 'eliminated':
+      return `❌ ${team} are ELIMINATED from Group ${group}`
+    default:
+      return `${team} (Group ${group}): ${status}`
+  }
+}
+
+// Short label + tooltip for a status, for the UI. Returns null for null status.
+export function clinchBadge(status) {
+  switch (status) {
+    case 'won-group':
+      return { cls: 'c-won', label: '🥇', text: 'Won group', title: 'Has clinched first place in the group' }
+    case 'runner-up':
+      return { cls: 'c-silver', label: '🥈', text: 'Group runner-up', title: 'Has clinched second place — through to the quarter-finals as the group runner-up' }
+    case 'top2':
+      return { cls: 'c-in', label: '✅', text: 'Through', title: 'Has clinched a top-two finish — through to the quarter-finals (1st vs 2nd still open)' }
+    case 'eliminated':
+      return { cls: 'c-out', label: '❌', text: 'Eliminated', title: 'Cannot advance under any remaining results' }
+    default:
+      return null
+  }
+}
