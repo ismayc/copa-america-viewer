@@ -64,8 +64,8 @@
   </g>
 
   <!-- text -->
-  <text x="330" y="262" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="800" fill="#ffffff">Euro 2024</text>
+  <text x="330" y="262" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="800" fill="#ffffff">Copa América 2024</text>
   <text x="332" y="334" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" fill="#4f8cff">Schedule Viewer</text>
-  <text x="332" y="408" font-family="Arial, Helvetica, sans-serif" font-size="31" fill="#aab4c5">All 51 matches in your timezone · standings · bracket</text>
-  <text x="332" y="460" font-family="Arial, Helvetica, sans-serif" font-size="27" fill="#7f8aa0">Germany · 14 June – 14 July 2024</text>
+  <text x="332" y="408" font-family="Arial, Helvetica, sans-serif" font-size="31" fill="#aab4c5">All 32 matches in your timezone · standings · bracket</text>
+  <text x="332" y="460" font-family="Arial, Helvetica, sans-serif" font-size="27" fill="#7f8aa0">United States · 20 June – 14 July 2024</text>
 </svg>

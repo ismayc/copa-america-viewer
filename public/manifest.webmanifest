@@ -1,7 +1,7 @@
 {
-  "name": "Euro 2024 — Schedule Viewer",
-  "short_name": "Euro 2024",
-  "description": "All 51 matches of UEFA Euro 2024 in your timezone — scores, group standings, and the knockout bracket.",
+  "name": "Copa América 2024 — Schedule Viewer",
+  "short_name": "Copa América",
+  "description": "All 32 matches of CONMEBOL Copa América 2024 in your timezone — scores, group standings, and the knockout bracket.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

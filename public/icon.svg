@@ -1,11 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#0a1430"/>
-  <!-- Saltire: the diagonal cross shared by the Euro 2028 hosts (Scotland's flag,
-       and the Scottish + Irish saltires inside the Union flag). Filled polygons,
-       never strokes — ImageMagick drops stroke colour. -->
-  <path fill="#16255c" d="M0 0 h96 L512 416 v96 h-96 L0 96 Z"/>
-  <path fill="#16255c" d="M512 0 v96 L96 512 H0 v-96 L416 0 Z"/>
-  <!-- Soccer ball — Google Noto Emoji (Apache License 2.0); padded for Android maskable cropping -->
+  <!-- Rays of a Sol de Mayo, the sun borne on the flags of Argentina and Uruguay,
+       the two most decorated Copa America nations. A device rather than any
+       badge: the soccer ball alone belongs to world-cup-viewer and the ball on a
+       saltire to football-euros-viewer, so this app takes its own mark. Filled
+       triangles, never strokes, because ImageMagick drops stroke colour. -->
+  <path fill="#f6b73c" d="M405.4 242.9 L502.0 256.0 L405.4 269.1 Z"/>
+  <path fill="#f6b73c" d="M399.1 301.1 L483.3 350.1 L389.1 325.3 Z"/>
+  <path fill="#f6b73c" d="M370.9 352.4 L429.9 429.9 L352.4 370.9 Z"/>
+  <path fill="#f6b73c" d="M325.3 389.1 L350.1 483.3 L301.1 399.1 Z"/>
+  <path fill="#f6b73c" d="M269.1 405.4 L256.0 502.0 L242.9 405.4 Z"/>
+  <path fill="#f6b73c" d="M210.9 399.1 L161.9 483.3 L186.7 389.1 Z"/>
+  <path fill="#f6b73c" d="M159.6 370.9 L82.1 429.9 L141.1 352.4 Z"/>
+  <path fill="#f6b73c" d="M122.9 325.3 L28.7 350.1 L112.9 301.1 Z"/>
+  <path fill="#f6b73c" d="M106.6 269.1 L10.0 256.0 L106.6 242.9 Z"/>
+  <path fill="#f6b73c" d="M112.9 210.9 L28.7 161.9 L122.9 186.7 Z"/>
+  <path fill="#f6b73c" d="M141.1 159.6 L82.1 82.1 L159.6 141.1 Z"/>
+  <path fill="#f6b73c" d="M186.7 122.9 L161.9 28.7 L210.9 112.9 Z"/>
+  <path fill="#f6b73c" d="M242.9 106.6 L256.0 10.0 L269.1 106.6 Z"/>
+  <path fill="#f6b73c" d="M301.1 112.9 L350.1 28.7 L325.3 122.9 Z"/>
+  <path fill="#f6b73c" d="M352.4 141.1 L429.9 82.1 L370.9 159.6 Z"/>
+  <path fill="#f6b73c" d="M389.1 186.7 L483.3 161.9 L399.1 210.9 Z"/>
+  <circle cx="256" cy="256" r="150" fill="#12204a"/>
+<!-- Soccer ball — Google Noto Emoji (Apache License 2.0); padded for Android maskable cropping -->
   <g transform="translate(256,256) scale(2.7) translate(-64,-64)">
 
 <path style="fill:#C8C8C8;" d="M63.95,4.06C28.43,3.56,2.05,33.98,3.82,66.51c2.09,38.31,29.48,57.56,61.52,57.34
