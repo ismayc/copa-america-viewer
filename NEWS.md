@@ -100,7 +100,7 @@ re-pointed at a completed edition so the next Copa América can slot straight in
 
 ### Testing
 
-- **803 tests across 83 files, 100% on the coverage badge.** The suite was
+- **805 tests across 84 files, 100% on the coverage badge.** The suite was
   migrated fixture by fixture rather than ported wholesale: an inherited fixture
   can be both inert *and* wrong (`group-stage-md3.js` was applying the Euro's
   *scores* to Copa match numbers), and a test built on another tournament's team
@@ -113,6 +113,16 @@ re-pointed at a completed edition so the next Copa América can slot straight in
   magnitude below the iteration cap, so `chooseCaps`' walk-down fallback cannot
   run here. `test/cov-outlook-enum.test.js` asserts the ceiling that makes it
   unreachable, so the ignore fails loudly if that stops being true.
+
+### Timezone determinism
+
+- **The suite is pinned to `America/New_York` in `vite.config.js`.** Kickoffs are
+  US evenings stored in ET, so most of them fall on the *next* calendar day in
+  UTC — which made three day-heading / "what counts as today" tests pass locally
+  and fail on a UTC CI runner. The sibling viewers never hit this: European
+  evening kickoffs stay on the same UTC day. `test/timezone-pinned.test.js`
+  asserts the pin is in effect, so removing it fails there loudly rather than as
+  three unrelated red tests.
 
 ### Deployment
 
