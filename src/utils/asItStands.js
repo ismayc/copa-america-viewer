@@ -61,6 +61,7 @@ export function projectKnockout(matches) {
   }
 
   const teamForSide = (s) => {
+    /* v8 ignore next -- unreachable: every entry match pushes exactly two sides, so opponentOf's find() always returns the sibling */
     if (!s) return null
     if (s.slot.type === 'winner') return first[s.slot.group]
     if (s.slot.type === 'runner') return second[s.slot.group]

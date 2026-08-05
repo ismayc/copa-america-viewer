@@ -36,9 +36,11 @@ function Star({ name }) {
 function AsItStands({ proj, onGoToMatch }) {
   if (!proj) return null
   const dest = (label, d, qualifies = true) => {
+    /* v8 ignore next -- unreachable here: both call sites below pass two arguments, so `qualifies` is always the default */
     if (!qualifies) return null
     const team = d?.team
     const opp = d?.opponent
+    /* v8 ignore next -- unreachable in this edition: every group has both a winner and a runner-up entry slot, so projectKnockout fills both destinations before this renders */
     if (!team) return null
     return (
       <li className="ais-row" key={label}>
@@ -238,6 +240,7 @@ export default function Standings({ matches, tz, hideScores, clinch, onGoToMatch
     const through = status === 'won-group' || status === 'runner-up' || status === 'top2'
     if (!through) return null
     const row = (qual.groups[group] || []).find((r) => r.name === team)
+    /* v8 ignore next -- unreachable: the group/team pair comes from a rendered standings row, so the team is always among that group's computed rows */
     if (!row) return null
     const proj = perGroup[group] || {}
     // A 'won-group'/'runner-up' verdict pins the exact finishing position, so use

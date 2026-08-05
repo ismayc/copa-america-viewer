@@ -14,6 +14,7 @@ import { rankGroup, headToHead } from './qualification.js'
 // Within a points-level group, mark adjacent pairs that neither overall GD/GF
 // nor the head-to-head sub-table could separate.
 function markCluster(tied, group, matches, notes) {
+  /* v8 ignore next -- unreachable: softTiebreaks only calls this for a cluster of 2 or more */
   if (tied.length < 2) return
   // Criteria 2–3 first (CONMEBOL order): overall goal difference, then goals.
   const sorted = [...tied].sort((a, b) => b.GD - a.GD || b.GF - a.GF)

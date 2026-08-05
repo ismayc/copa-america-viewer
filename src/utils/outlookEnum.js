@@ -200,6 +200,7 @@ export function enumerateOutlook(matches, onProgress, fixedCap) {
     }
 
     done++
+    /* v8 ignore next -- unreachable in this edition: the heartbeat fires every 50,000 combinations, and four groups of four never produce that many; the final onProgress below is the only one this tournament reaches */
     if (onProgress && done % STEP === 0) onProgress(done, iters)
 
     let k = order.length - 1

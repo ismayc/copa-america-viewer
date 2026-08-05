@@ -150,6 +150,34 @@ describe('name helpers', () => {
   })
 })
 
+describe('records with nothing in them', () => {
+  it('reads a scorer line whose home half is blank', () => {
+    // OpenFootball writes both halves around a semicolon even when only one side
+    // scored, so the empty half has to parse as "no goals" rather than throw.
+    const txt = [
+      '= Copa América 2024',
+      '',
+      '▪ Group A',
+      '',
+      'Thu Jun 20 20:00 UTC-4   Argentina      0-2   Canada  @ Somewhere, Atlanta, Georgia',
+      "                 ( ; Davies 49\' David 88\')",
+      '',
+    ].join('\n')
+    const rec = [...parseCupTxt(txt, 2024).values()][0]
+    expect(rec.g1).toEqual([])
+    expect(rec.g2).toHaveLength(2)
+  })
+
+  it('leaves a group match alone when the record carries no score', () => {
+    // A fixture line with no result yet: the record exists (so the teams are
+    // known) but writing it back would blank the board rather than fill it.
+    const base = { num: 1, stage: 'Group', group: 'A', t1: 'Alpha', t2: 'Beta', ko: '2024-06-15T20:00:00Z' }
+    const map = new Map([[matchKey(base), { home: 'Alpha', away: 'Beta' }]])
+    const [out] = applyResults([base], map)
+    expect(out).toBe(base)
+  })
+})
+
 describe('the source it reads', () => {
   it('points at OpenFootball’s copa.txt, not a JSON feed', () => {
     expect(RESULTS_SOURCE.url).toMatch(/copa-america.*copa\.txt$/)

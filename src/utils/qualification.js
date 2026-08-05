@@ -111,6 +111,7 @@ export function headToHead(names, group, matches) {
 // difference and goals scored FIRST, and only then the head-to-head sub-table
 // among whatever teams are still exactly level.
 function resolveLevelOnPoints(tied, group, matches) {
+  /* v8 ignore next -- unreachable: the sole caller below only calls this when tied.length > 1 */
   if (tied.length === 1) return tied
 
   // Criteria 2–3: overall goal difference, then overall goals scored.

@@ -390,6 +390,66 @@ describe('App coverage', () => {
     }
   })
 
+  it('raises an on-page toast with no notification permission, stacks the next goal, and suppresses a desynced flood', async () => {
+    // No Notification at all: the on-page toast is the whole point of raising
+    // both, because a focused tab is exactly when the OS tends to mute them.
+    localStorage.setItem('copa:goalAlerts', JSON.stringify({ enabled: true, scope: 'all' }))
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2024-06-21T00:00:00Z'))
+    try {
+      let goals = []
+      global.fetch = vi.fn(async (url) => {
+        if (typeof url === 'string' && url.startsWith(LIVE_SOURCE.url)) {
+          return {
+            ok: true,
+            json: async () => ({
+              events: [
+                espnEvent({
+                  home: 'Argentina',
+                  away: 'Canada',
+                  date: '2024-06-21T00:00:00Z',
+                  state: 'in',
+                  hs: String(goals.length),
+                  as: '0',
+                  goals,
+                }),
+              ],
+            }),
+          }
+        }
+        return { ok: true, json: async () => ({ events: [] }) }
+      })
+      render(<App />)
+      await vi.waitFor(() => expect(screen.getByText(/live now/)).toBeInTheDocument())
+
+      goals = [{ side: 'home', name: 'First', minute: 12 }]
+      await vi.advanceTimersByTimeAsync(31000)
+      const region = () => screen.getByRole('region', { name: /Goal alerts/ })
+      await vi.waitFor(() => expect(region().textContent).toMatch(/First/))
+
+      // A second goal arrives while the first toast is still up. Toasts retire
+      // after 8s and the live poll is 30s apart, so the only way two share the
+      // screen is a manual refresh — which is exactly when the new batch has to
+      // be diffed against what is already showing rather than replacing it.
+      goals = [...goals, { side: 'home', name: 'Second', minute: 20 }]
+      fireEvent.click(document.querySelector('.results-refresh'))
+      await vi.advanceTimersByTimeAsync(100)
+      await vi.waitFor(() => expect(region().textContent).toMatch(/Second/))
+      expect(region().textContent).toMatch(/First/)
+
+      // A feed gap restoring a pile of goals at once is a desync, not six goals
+      // in thirty seconds — it is dropped rather than spammed onto the page.
+      const before = region().textContent
+      goals = [...goals, ...Array.from({ length: 6 }, (_, i) => ({ side: 'home', name: `Flood${i}`, minute: 30 + i }))]
+      fireEvent.click(document.querySelector('.results-refresh'))
+      await vi.advanceTimersByTimeAsync(100)
+      expect(region().textContent).toBe(before)
+      expect(region().textContent).not.toMatch(/Flood/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('toggleGoalAlerts: granted -> enables, scope select, toggle scope, disable', async () => {
     class FakeNotification {
       static permission = 'granted'
