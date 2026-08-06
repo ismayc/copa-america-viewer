@@ -10,6 +10,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.js'],
+    // Full-app tests under v8 instrumentation brush the default 5s ceiling on a
+    // loaded CI runner (mount, several polls, a fake-timer refresh cycle). Give
+    // them headroom so a busy runner doesn't flake a passing test.
+    testTimeout: 15000,
     // Pin the suite to the tournament's own timezone. Kickoffs are US evenings in
     // ET, so they land on the NEXT calendar day in UTC — which means any test
     // asserting a day heading ("June 20, 2024"), or what counts as "today", is
