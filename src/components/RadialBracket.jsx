@@ -41,6 +41,7 @@ function childMatchNums(num) {
   const [l1, l2] = slotLabels(m)
   const a = FEED.exec(l1)
   const b = FEED.exec(l2)
+  /* v8 ignore next -- unreachable: only rounds ABOVE the entry round ask for their children, and those are always fed by "Winner Match N" labels */
   return a && b ? [Number(a[1]), Number(b[1])] : null // null for a QF (children are teams)
 }
 
@@ -109,7 +110,9 @@ function FlagNode({ x, y, team, label, followed, onPath, trail, dimmed, onClick,
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
     >
-      <title>{label || team}</title>
+      {/* Every call site derives its label from the same team it passes, so a
+          node with a flag always has one. */}
+      <title>{label}</title>
       <circle className="rb-flag-bg" cx={x} cy={y} r={r} />
       <text className="rb-flag" x={x} y={y} fontSize={r * 1.3}>
         {flag}

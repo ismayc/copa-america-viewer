@@ -118,6 +118,32 @@ describe('applyResults — the knockout path', () => {
     expect(out.goals.t1[0].name).toBe('Valencia')
   })
 
+  it('leaves a placeholder side alone when the feed has no real name for it', () => {
+    // Half-published knockout: the feed knows one side and is still carrying a
+    // placeholder for the other, which must not be written onto the board. Each
+    // side is written independently, so neither guards the other.
+    const drawn = MATCHES.map((m) => (m.num === 25 ? { ...m, t1: 'Argentina', t2: 'Ecuador' } : m))
+    const key = matchKey(drawn.find((m) => m.num === 25))
+    const halfKnown = new Map([[key, {
+      home: 'Winner Group A', away: 'Ecuador', score: { ft: [0, 2] }, g1: [], g2: [],
+    }]])
+    const one = applyResults(drawn, halfKnown).find((m) => m.num === 25)
+    expect(one.t1).toBe('Argentina') // untouched by the feed's placeholder
+    expect(one.t2).toBe('Ecuador')
+
+    // …and the mirror image, with the away side the unresolved one. A distinct
+    // drawn pairing here so "untouched" cannot be confused with "rewritten to
+    // the same name".
+    const other = MATCHES.map((m) => (m.num === 25 ? { ...m, t1: 'Argentina', t2: 'Canada' } : m))
+    const otherKey = matchKey(other.find((m) => m.num === 25))
+    const otherWay = new Map([[otherKey, {
+      home: 'Ecuador', away: 'Winner Group B', score: { ft: [2, 0] }, g1: [], g2: [],
+    }]])
+    const two = applyResults(other, otherWay).find((m) => m.num === 25)
+    expect(two.t1).toBe('Ecuador') // the feed's real name won
+    expect(two.t2).toBe('Canada') // the drawn away side, untouched
+  })
+
   it('leaves a knockout tie alone when the feed has no score for it yet', () => {
     const drawn = MATCHES.map((m) => (m.num === 25 ? { ...m, t1: 'Argentina', t2: 'Ecuador' } : m))
     const key = matchKey(drawn.find((m) => m.num === 25))

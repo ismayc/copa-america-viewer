@@ -518,7 +518,11 @@ describe('App coverage', () => {
       await vi.waitFor(() => expect(fired.length).toBeGreaterThan(0))
       expect(fired[0].title).toMatch(/GOAL/)
       // …and the same goal raises an on-page toast; its ✕ dismisses it.
-      const toast = screen.getByRole('region', { name: /Goal alerts/ })
+      // The notification fires from the same effect that queues the toast, so
+      // on a loaded runner the OS notification can be observed a render before
+      // the toast is on the page — wait for it rather than reading it straight
+      // out.
+      const toast = await vi.waitFor(() => screen.getByRole('region', { name: /Goal alerts/ }))
       expect(toast.textContent).toMatch(/Jimenez/)
       fireEvent.click(screen.getByLabelText('Dismiss'))
       expect(screen.queryByRole('region', { name: /Goal alerts/ })).toBeNull()

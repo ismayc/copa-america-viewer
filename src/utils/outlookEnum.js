@@ -43,14 +43,13 @@ const GROUPS = Object.keys(TEAMS)
 const MAX_ITERS = 12_000_000
 
 function parseSlot(label) {
-  let m = WINNER_GROUP.exec(label)
-  if (m) return { type: 'winner', group: m[1] }
-  m = RUNNERUP_GROUP.exec(label)
-  if (m) return { type: 'runner', group: m[1] }
-  /* v8 ignore start -- defensive: every entry-round slot is a group winner or runner-up */
-  return { type: 'other' }
+  const w = WINNER_GROUP.exec(label)
+  if (w) return { type: 'winner', group: w[1] }
+  const r = RUNNERUP_GROUP.exec(label)
+  /* v8 ignore next -- defensive: the slots come from the committed schedule, where every entry-round side is a group winner or runner-up */
+  if (!r) return { type: 'other' }
+  return { type: 'runner', group: r[1] }
 }
-/* v8 ignore stop */
 
 const ENTRY = entryMatches(MATCHES).map((m) => ({
   num: m.num,
@@ -147,6 +146,7 @@ function chooseCaps(matches, fixedCap) {
   let last = null
   for (let cap = baseCap(matches); cap >= 3; cap--) {
     last = atCap(matches, cap)
+    /* v8 ignore next -- unreachable with 4 groups of 4: the first pass is always within MAX_ITERS, so the loop never comes round again; see the note above */
     if (last.iters <= MAX_ITERS) return last
   }
   /* v8 ignore start -- unreachable with 4 groups of 4; see the note above */
@@ -191,11 +191,12 @@ export function enumerateOutlook(matches, onProgress, fixedCap) {
     for (const m of ENTRY) {
       for (let side = 0; side < 2; side++) {
         const s = m.sides[side]
-        const team = s.type === 'winner' ? W[s.group] : s.type === 'runner' ? R[s.group] : null
-        if (team) {
-          const mp = counts[m.num][side]
-          mp.set(team, (mp.get(team) || 0) + weight)
-        }
+        // Every entry-round side is a group winner or runner-up (parseSlot
+        // above), and every group contributes an outcome naming both, so there
+        // is always a team here.
+        const team = s.type === 'winner' ? W[s.group] : R[s.group]
+        const mp = counts[m.num][side]
+        mp.set(team, (mp.get(team) || 0) + weight)
       }
     }
 

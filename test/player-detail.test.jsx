@@ -97,3 +97,200 @@ describe('PlayerDetail', () => {
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ num: 1 }))
   })
 })
+
+describe('PlayerDetail — the shapes a scorer’s row can take', () => {
+  // One scorer, one board, every rendering fork the table has: playing as the
+  // away side (so score and penalties both need flipping), a shootout won and
+  // one lost, a goal with no recorded minute, a stoppage-time goal, a penalty,
+  // a match still in play, and a match the player did not appear in.
+  const KEY = 'Solo Striker'
+  const away = (num, stage, extra = {}) => ({
+    num,
+    stage,
+    group: stage === 'Group' ? 'A' : undefined,
+    t1: 'Someone Else',
+    t2: 'Home Nation',
+    ko: `2026-06-1${num}T15:00:00-04:00`,
+    espnId: `e${num}`,
+    ...extra,
+  })
+
+  const board = [
+    // Away win, a goal with no minute and one in stoppage time, plus a penalty.
+    away(1, 'Group', {
+      score: [0, 3],
+      goals: {
+        t1: [],
+        t2: [
+          { name: KEY },                                   // no minute recorded
+          { name: KEY, minute: 90, extra: 3 },             // 90+3
+          { name: KEY, minute: 55, penalty: true },        // from the spot
+          { name: KEY, minute: 12, og: true },             // own goal — never counted
+        ],
+      },
+    }),
+    // Level after 90 and lost from the spot, seen from the away side.
+    away(2, 'R16', { score: [1, 1], pens: [5, 4], goals: { t1: [], t2: [] } }),
+    // Level after 90 and won from the spot, seen from the away side.
+    away(3, 'QF', { score: [2, 2], pens: [2, 4], goals: { t1: [], t2: [] } }),
+    // Still in play.
+    away(4, 'SF', { score: [0, 0], live: { clock: "60'" }, goals: { t1: [], t2: [] } }),
+  ]
+
+  const scorer = {
+    name: KEY,
+    team: 'Home Nation',   // not a real team, so the flag falls back
+    goals: 3,
+    pens: 1,               // singular
+    assists: 1,            // singular
+    minutes: 300,
+  }
+
+  const renderVariants = () => {
+    const onOpen = vi.fn()
+    render(
+      <DetailContext.Provider value={onOpen}>
+        <PlayerDetail scorer={scorer} matches={board} onClose={vi.fn()} />
+      </DetailContext.Provider>,
+    )
+    return onOpen
+  }
+
+  it('flips the score and the shootout for a player on the away side', async () => {
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderVariants()
+    const rows = screen.getAllByRole('row').slice(1)
+    // Away 3–0 reads as a win, from this player's side.
+    expect(rows[0].cells[1]).toHaveTextContent('W 3–0')
+    // 1–1, lost 4–5 on penalties: the shootout is shown their way round.
+    expect(rows[1].cells[1]).toHaveTextContent('L 1–1')
+    expect(rows[1].cells[1]).toHaveTextContent('p4–5')
+    // 2–2, won 4–2 on penalties.
+    expect(rows[2].cells[1]).toHaveTextContent('W 2–2')
+    expect(rows[2].cells[1]).toHaveTextContent('p4–2')
+  })
+
+  it('labels a minuteless goal, a stoppage-time goal and a penalty, and drops an own goal', () => {
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderVariants()
+    const goalsCell = screen.getAllByRole('row')[1].cells[2]
+    expect(goalsCell).toHaveTextContent('?’')     // no minute recorded
+    expect(goalsCell).toHaveTextContent('90+3’')  // stoppage time
+    expect(goalsCell).toHaveTextContent('pen')
+    // The own goal is not this player's, even though it carries their name.
+    expect(goalsCell.querySelectorAll('.pd-goal')).toHaveLength(3)
+  })
+
+  it('writes the singular forms of a single penalty and a single assist', () => {
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderVariants()
+    expect(screen.getByText(/1 pen\)/)).toBeInTheDocument()
+    expect(screen.getByText(/1 assist(?!s)/)).toBeInTheDocument()
+    // An unknown team has no flag of its own.
+    expect(document.querySelector('.pd-flag').textContent).toBe('•')
+  })
+
+  it('shows a dash for a match still in play and DNP for one the player missed', async () => {
+    fetchMatchLines.mockImplementation(async (id) =>
+      id === 'e4'
+        ? { length: 90, byName: { [KEY.toLowerCase()]: { played: true, minutes: 60, assists: 0 } } }
+        : { length: 90, byName: { [KEY.toLowerCase()]: { played: false, minutes: 0, assists: 0 } } },
+    )
+    renderVariants()
+    const rows = () => screen.getAllByRole('row').slice(1)
+    await waitFor(() => expect(rows()[0]).toHaveClass('pd-benched'))
+    // Did not appear: minutes read DNP rather than 0′.
+    expect(rows()[0].cells[4]).toHaveTextContent('DNP')
+    // Still in play: the final minutes are not knowable yet.
+    expect(rows()[3].cells[4]).toHaveTextContent('—')
+    expect(rows()[3].cells[1].querySelector('.boot-live')).toBeTruthy()
+  })
+
+  it('falls back to a blank line for a match the feed has no entry for', async () => {
+    // byName has no row for this player, so the component substitutes a
+    // did-not-play line rather than leaving the cells on their loading dots.
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: { someone_else: {} } }))
+    renderVariants()
+    await waitFor(() => expect(screen.getAllByRole('row')[1].cells[3]).toHaveTextContent('0'))
+    expect(screen.getAllByRole('row')[1].cells[4]).toHaveTextContent('DNP')
+  })
+})
+
+describe('PlayerDetail — the same shapes from the home side', () => {
+  // The away side above needs every pair flipped; the home side is the other
+  // half of each of those forks, and reads its numbers straight through. Plus
+  // the two things that have no away equivalent: a shootout that is somehow
+  // level, and a match the goal feeds never arrived for.
+  const KEY = 'Home Striker'
+  const home = (num, stage, extra = {}) => ({
+    num,
+    stage,
+    group: stage === 'Group' ? 'A' : undefined,
+    t1: 'Home Nation',
+    t2: 'Someone Else',
+    ko: `2026-06-1${num}T15:00:00-04:00`,
+    espnId: `e${num}`,
+    ...extra,
+  })
+
+  const board = [
+    // Won from the spot, read straight through from the home side.
+    home(1, 'QF', { score: [1, 1], pens: [5, 4], goals: { t1: [], t2: [] } }),
+    // A shootout the data says nobody won. It cannot happen on the pitch, but a
+    // half-published feed can say it, and the result must stay a draw rather
+    // than crowning whoever is listed first.
+    home(2, 'SF', { score: [2, 2], pens: [3, 3], goals: { t1: [], t2: [] } }),
+    // Finished, with no goal lists at all — ESPN publishes the result before the
+    // events on occasion — and a goal credited to nobody.
+    home(3, 'Group', { score: [1, 0] }),
+    home(4, 'Final', { score: [0, 0], pens: [4, 2], goals: { t1: [{ minute: 30 }], t2: [] } }),
+  ]
+
+  const scorer = {
+    name: KEY,
+    team: 'Home Nation',
+    goals: 2,
+    pens: 0, // none from the spot → the header says nothing about penalties
+    assists: 0,
+    minutes: 400,
+  }
+
+  const renderHome = (over = {}) => {
+    render(
+      <DetailContext.Provider value={vi.fn()}>
+        <PlayerDetail scorer={{ ...scorer, ...over }} matches={board} onClose={vi.fn()} />
+      </DetailContext.Provider>,
+    )
+  }
+
+  it('reads results, shootouts and empty goal feeds from the home side', () => {
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderHome()
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(rows[0].cells[1]).toHaveTextContent('W 1–1')
+    expect(rows[0].cells[1]).toHaveTextContent('p5–4')
+    // Level on penalties too → still a draw.
+    expect(rows[1].cells[1]).toHaveTextContent('D 2–2')
+    expect(rows[1].cells[1]).toHaveTextContent('p3–3')
+    // No goal lists on the board at all, and no crash for the missing side.
+    expect(rows[2].cells[1]).toHaveTextContent('W 1–0')
+    expect(rows[2].cells[2]).toHaveTextContent('—')
+    // The nameless goal belongs to nobody, so it is not credited to this player.
+    expect(rows[3].cells[2]).toHaveTextContent('—')
+  })
+
+  it('says nothing about penalties for a scorer who has taken none', () => {
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderHome()
+    expect(screen.getByText(/⚽ 2/)).toBeInTheDocument()
+    expect(screen.queryByText(/pen/)).toBeNull()
+  })
+
+  it('pluralises a scorer with more than one penalty', () => {
+    // One reads "(1 pen)"; two or more have to read "(2 pens)" rather than
+    // borrowing the singular.
+    fetchMatchLines.mockImplementation(async () => ({ length: 90, byName: {} }))
+    renderHome({ goals: 4, pens: 2 })
+    expect(screen.getByText(/⚽ 4 \(2 pens\)/)).toBeInTheDocument()
+  })
+})

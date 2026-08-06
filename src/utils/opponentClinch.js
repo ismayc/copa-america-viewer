@@ -24,14 +24,13 @@ const GROUPS = Object.keys(TEAMS)
 const ENTRY = entryMatches(MATCHES).map((m) => ({ num: m.num, slots: slotLabels(m) }))
 
 function parseSlot(label) {
-  let m = WINNER_GROUP.exec(label)
-  if (m) return { type: 'winner', group: m[1] }
-  m = RUNNERUP_GROUP.exec(label)
-  if (m) return { type: 'runner', group: m[1] }
-  /* v8 ignore start -- defensive: every entry-round slot is a group winner or runner-up */
-  return { type: 'other' }
+  const w = WINNER_GROUP.exec(label)
+  if (w) return { type: 'winner', group: w[1] }
+  const r = RUNNERUP_GROUP.exec(label)
+  /* v8 ignore next -- defensive: the slots come from the committed schedule, where every entry-round side is a group winner or runner-up */
+  if (!r) return { type: 'other' }
+  return { type: 'runner', group: r[1] }
 }
-/* v8 ignore stop */
 
 // The locked quarter-final opponent for `team`, or null if it isn't
 // mathematically fixed yet. `clinch` may be passed in to avoid recomputing it —

@@ -17,7 +17,10 @@ function FeederTeam({ name, pathTeam }) {
   const onPath = name === pathTeam
   return (
     <span className={`bx-feeder-team${isFollowed(name) ? ' followed' : ''}${onPath ? ' on-path-team' : ''}`}>
-      <span className="bx-flag">{FLAG_BY_TEAM[name] || '·'}</span>
+      {/* feederTeams() only resolves a feeder once BOTH candidates are real
+          teams, so a candidate always has a flag (unlike a plain side below,
+          which may still be an unresolved slot label). */}
+      <span className="bx-flag">{FLAG_BY_TEAM[name]}</span>
       <span className="bx-team">{name}</span>
     </span>
   )
@@ -170,6 +173,7 @@ function useMediaQuery(query) {
 // Phones / small tablets: one round at a time, picked from a pill selector, as a
 // full-width vertical list — no horizontal scrolling.
 function MobileBracket({ common, activeRound, setActiveRound }) {
+  /* v8 ignore next -- unreachable: activeRound only ever comes from currentRound() or a round button, both of which name a ROUNDS key */
   const round = ROUNDS.find((r) => r.key === activeRound) || ROUNDS[0]
   return (
     <>

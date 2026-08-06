@@ -5,7 +5,7 @@ import ScenariosView from '../src/components/ScenariosView.jsx'
 
 // Real Group A teams so flags / FIFA ranking resolve. A full round-robin lets us
 // drive the standings down to soft tie-breakers (mirrors test/tiebreak-notes.js).
-const A = ['Germany', 'Hungary', 'Scotland', 'Switzerland']
+const A = ['Argentina', 'Canada', 'Chile', 'Peru']
 const PAIRS = [
   [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
 ]
@@ -76,5 +76,53 @@ describe('ScenariosView uncovered branches', () => {
     render(<ScenariosView matches={m} />)
     const card = screen.getByText('Group A').closest('.sc-card')
     expect(within(card).getByText('3 to pick')).toBeInTheDocument()
+  })
+})
+
+describe('ScenariosView — teams, ties and matchups the projection cannot fill in', () => {
+  // Five of the six group games drawn 0-0 and the last still open, plus a red
+  // card, so the table comes down to fair play rather than a drawing of lots.
+  const withCards = () => {
+    const scores = PAIRS.map(() => [0, 0])
+    scores[5] = undefined
+    const board = groupA(scores)
+    // One side is carded, so their fair-play score is the worse one and the pair
+    // straddling them is separated by conduct rather than by lots.
+    board[2] = { ...board[2], cards: { t1: [], t2: [{ color: 'red' }] } }
+    return board
+  }
+
+  it('says a soft tie-break was decided on cards, and warns the card data is best-effort', () => {
+    render(<ScenariosView matches={withCards()} />)
+    const marks = [...document.querySelectorAll('.sc-tiebreak')]
+    expect(marks.length).toBeGreaterThan(0)
+    expect(marks.some((m) => /disciplinary record/i.test(m.getAttribute('title')))).toBe(true)
+    expect(marks.some((m) => /best-effort card data/.test(m.getAttribute('title')))).toBe(true)
+  })
+
+  it('marks a fixture whose teams the flag table does not know', () => {
+    // A group game against a name the committed table has never carried — an
+    // upstream re-spelling, say. The picker still has to draw the fixture.
+    const board = [
+      ...groupA(PAIRS.map(() => [0, 0])).slice(0, 5),
+      { num: 105, stage: 'Group', group: 'A', t1: 'Nowhere United', t2: 'Elsewhere City' },
+    ]
+    render(<ScenariosView matches={board} />)
+    const teams = [...document.querySelectorAll('.sc-fx-team')].map((n) => n.textContent)
+    expect(teams).toEqual(['• Nowhere United', 'Elsewhere City •'])
+  })
+
+  it('shows TBD for a projected opponent the bracket cannot name yet', () => {
+    // The knockout tie this group's winner feeds into has one side that is not a
+    // group slot at all, so there is no opponent to project — the line still
+    // names the qualifier and leaves the other half blank.
+    const board = [
+      ...groupA((() => { const s = PAIRS.map(() => [0, 0]); s[5] = undefined; return s })()),
+      { num: 900, stage: 'QF', t1: 'Winner Group A', t2: 'Winner Match 5', ko: '2024-07-05T15:00:00Z' },
+    ]
+    render(<ScenariosView matches={board} />)
+    const first = document.querySelector('.sc-r32-row')
+    expect(first.querySelector('.sc-r32-opp').textContent).toBe('TBD')
+    expect(first.querySelector('.sc-r32-num').textContent).toBe('M900')
   })
 })

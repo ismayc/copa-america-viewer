@@ -4,6 +4,41 @@ A dated changelog for the Copa América 2024 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-05
+
+- **Toolchain upgrade.** Vite 5 → 8 (Rolldown), Vitest + coverage-v8 2 → 4,
+  `@vitejs/plugin-react` 4 → 6, jsdom 25 → 30, React 18 → 19, jest-dom 6 → 7.
+  React 19 was verified in a browser across the family.
+- **Coverage badge back to 100%.** Vitest 4's v8 provider counts arms Vitest 2
+  skipped, so the badge slipped on the upgrade. Nothing had regressed; the drift
+  had simply been invisible, and it was closed with tests rather than waved
+  through.
+- **100% on every metric, and a gate that keeps it there.** Branch coverage
+  joined statements, functions and lines at 100%, and `vite.config.js` now
+  carries a `thresholds` block so the suite (and CI's `coverage:badge` step)
+  fails the moment any of the four slips. The tests added along the way describe
+  real states rather than chasing the counter: an event ESPN publishes with no
+  status and no kind, a log item with no event reference, a stat line with no
+  numbers, a shootout read from the second-named team's side, a scorer's table
+  seen from the home side, an enrichment that arrives late or empty, a candidate
+  and a fixture the flag table has never heard of, a soft tie-break decided on
+  cards, a projected opponent the bracket cannot name yet, a team in the Final
+  it has not played, and a results load that was superseded rather than failed.
+- **Radial bracket edges.** The circular view now has tests for the third-place
+  play-off while it is being played, a play-off won by the right-hand side of the
+  circle, a board whose play-off record has not been published, and a champion
+  whose route through the rounds is not on the board.
+- **Two fixtures that were testing nothing.** `cov-scenarios` and `cov-tiebreak`
+  were built on a sibling tournament's Group A. The ranker seeds its rows from
+  the committed group, so those boards ranked a blank table and their assertions
+  held without a single result being read. Both now use this edition's teams,
+  and the tie-break one asserts the order the criteria actually produce.
+- **Dead defensive arms removed or documented.** Where a fallback could not be
+  reached — a flag lookup on a name that always comes from the committed team
+  table, a group the ranker always seeds, an entry-round slot that always parses
+  — it is either gone or carries an inline `/* v8 ignore next -- why */` with the
+  reason, never a lowered threshold.
+
 ## 2026-07-28
 
 First release. Built from the sibling

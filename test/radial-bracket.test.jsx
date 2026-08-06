@@ -309,3 +309,59 @@ describe('RadialBracket — every clickable, and the shapes it guards against', 
     expect(container.querySelectorAll('.rb-node.rb-click').length).toBe(0)
   })
 })
+
+describe('RadialBracket — the play-off, and boards missing the ties around it', () => {
+  it('names the play-off pair even with no play-off record to open', () => {
+    // The semi-finals are decided, so both beaten semi-finalists are known — but
+    // the third-place fixture itself has not been published. Their flags still
+    // belong on the circle; there is simply nothing to click through to.
+    const board = playedBracket().filter((m) => m.num !== 31)
+    const { container } = renderRB(board)
+    const titles = [...container.querySelectorAll('.rb-node title')].map((t) => t.textContent)
+    expect(titles.some((t) => /3rd place/.test(t))).toBe(false) // no winner without the tie
+    // Every node that IS clickable belongs to a match still on the board.
+    const nodes = [...container.querySelectorAll('.rb-node')]
+    expect(nodes.some((n) => !n.classList.contains('rb-click'))).toBe(true)
+    const unclickable = nodes.find((n) => !n.classList.contains('rb-click'))
+    expect(unclickable.getAttribute('role')).toBeNull()
+    expect(unclickable.getAttribute('tabindex')).toBeNull()
+  })
+
+  it('spotlights and blinks the play-off while it is being played', () => {
+    vi.useFakeTimers()
+    try {
+      const board = playedBracket().map((m) =>
+        m.num === 31 ? { ...m, score: [0, 0], live: { clock: "20'" } } : m,
+      )
+      const third = board.find((m) => m.num === 31)
+      vi.setSystemTime(new Date(third.ko))
+      const { container } = renderRB(board)
+      expect(container.querySelector('.rb-live-dot')).toBeTruthy()
+      expect(container.querySelectorAll('.rb-halo').length).toBeGreaterThan(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('marks the play-off winner on whichever side of the circle won it', () => {
+    // The board plays every tie out with the first-named side winning, so the
+    // third-place mark always lands on the left node. Flip that one result and
+    // it has to move to the right one instead of staying put.
+    const board = playedBracket().map((m) => (m.num === 31 ? { ...m, score: [0, 1] } : m))
+    const { container } = renderRB(board)
+    const titles = [...container.querySelectorAll('.rb-node title')].map((t) => t.textContent)
+    const third = titles.filter((t) => /— 3rd place$/.test(t))
+    expect(third).toHaveLength(1)
+    expect(third[0]).toBe(`${board.find((m) => m.num === 31).t2} — 3rd place`)
+  })
+
+  it('crowns a champion whose route is not on the board', () => {
+    // A board carrying nothing but a decided Final: the champion is known, but
+    // there is no route back through the rounds to light up.
+    const full = playedBracket()
+    const finalOnly = full.filter((m) => m.num === 32)
+    const { container } = renderRB(finalOnly)
+    expect(container.querySelector('.rb-svg')).toBeTruthy()
+    expect(container.querySelector('.rb-node.on-trail')).toBeNull()
+  })
+})

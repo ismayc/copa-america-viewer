@@ -189,15 +189,27 @@ describe('Standings clinch badges', () => {
 describe('Schedule team-name slot tooltip', () => {
   const groupMatch = MATCHES.find((m) => m.num === 1) // Argentina v Canada (Group A)
 
-  function renderCard(clinch) {
+  function renderCard(clinch, slotMap = groupSlotMap(MATCHES)) {
     return render(
       <FollowProvider>
         <DetailContext.Provider value={() => {}}>
-          <MatchCard match={groupMatch} tz="America/New_York" clinch={clinch} slotMap={groupSlotMap(MATCHES)} />
+          <MatchCard match={groupMatch} tz="America/New_York" clinch={clinch} slotMap={slotMap} />
         </DetailContext.Provider>
       </FollowProvider>,
     )
   }
+
+  it('names only the routes the bracket has actually published', () => {
+    // A board where the knockout round has not been drawn yet (or has been drawn
+    // only in part): the group still has a route line, but it lists just the
+    // destinations that exist rather than "1st → Match null".
+    renderCard({}, { A: { win: null, runnerUp: null } })
+    const title = screen.getByText('Argentina').getAttribute('title')
+    expect(title).toMatch(/Group A knockout route/)
+    expect(title).not.toMatch(/1st →/)
+    expect(title).not.toMatch(/2nd →/)
+    expect(title).toMatch(/3rd or 4th → eliminated/)
+  })
 
   it('shows the conditional knockout route when undecided', () => {
     renderCard({})

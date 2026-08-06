@@ -5,7 +5,7 @@ import { FollowProvider } from '../src/context/follow.jsx'
 import { DetailContext } from '../src/context/detail.js'
 import { STAGE_LABELS } from '../src/data/matches.js'
 import { MATCHES as PLAYED } from '../src/data/matches.js'
-import { unscored } from './helpers/tournament.js'
+import { unscored, playedUpTo } from './helpers/tournament.js'
 // This edition is finished, so the committed schedule ships with every result
 // in it. These tests were written against a schedule that had none, so they
 // work from a blank board; `PLAYED` is there when the real results are wanted.
@@ -279,6 +279,21 @@ describe('Bracket with pieces missing', () => {
       expect(screen.getAllByText(/Final/i).length).toBeGreaterThan(0)
     } finally {
       window.matchMedia = real
+    }
+  })
+
+  it('highlights a followed team as a bracket side and as a feeder candidate', () => {
+    // Mid-tournament: the quarter-finals are played, the semi-finals are still
+    // reading "Winner Match 25", so the same team appears twice — once as a
+    // resolved side of its own tie and once as a candidate inside the tie it
+    // feeds. Following it has to light up both.
+    localStorage.setItem('copa:followed', JSON.stringify(['Argentina']))
+    try {
+      renderBracket(playedUpTo(28))
+      expect(document.querySelector('.bx-side.followed')).toBeTruthy()
+      expect(document.querySelector('.bx-feeder-team.followed')).toBeTruthy()
+    } finally {
+      localStorage.clear()
     }
   })
 })

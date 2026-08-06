@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import StatsView from '../src/components/StatsView.jsx'
 import { DetailContext } from '../src/context/detail.js'
@@ -292,5 +292,68 @@ describe('StatsView tile drill-down', () => {
     render(<StatsView matches={matches} hideScores={false} />)
     expect(screen.getByRole('button', { name: /extra-time games/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: /shootouts/ })).toBeDisabled()
+  })
+})
+
+describe('StatsView — enrichment that lands late, lands empty, or names a stranger', () => {
+  const liveBoard = () => [
+    ...matches,
+    { num: 61, stage: 'SF', t1: 'Mexico', t2: 'Colombia', score: [0, 0], live: { minute: 10 }, goals: { t1: [], t2: [] } },
+  ]
+
+  it('folds an interval refresh that finally returns something into the table', async () => {
+    // The first fetch came back empty (nothing published yet); the refresh five
+    // minutes later is the one that carries the official figures, and it has to
+    // enrich the table rather than be dropped for arriving second.
+    vi.useFakeTimers()
+    try {
+      render(<StatsView matches={liveBoard()} hideScores={false} />)
+      expect(screen.queryByTitle('Assists')).toBeNull()
+      fetchBootExtras.mockImplementation(async () => [
+        { name: 'Raúl Jiménez', goals: 3, assists: 2, minutes: 180 },
+        { name: 'Shamar Nicholson', goals: 1, assists: 0, minutes: 90 },
+      ])
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1000)
+      })
+      expect(screen.getByTitle('Assists')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('treats an empty reconciliation as no override at all', async () => {
+    // Nothing came back for any of the shown scorers, so the committed aggregate
+    // is left standing rather than being overwritten with an empty override set.
+    const recent = [
+      ...matches,
+      { num: 62, stage: 'SF', t1: 'Mexico', t2: 'Colombia', ko: recentKo(), score: [1, 0], espnId: 'e62', goals: { t1: [{ name: 'Raúl Jiménez' }], t2: [] } },
+    ]
+    render(<StatsView matches={recent} hideScores={false} />)
+    await vi.waitFor(() => expect(fetchRecentPlayerStats).toHaveBeenCalled())
+    const row = screen.getByText('Raúl Jiménez').closest('tr')
+    expect(row).toHaveTextContent('4') // the committed tally, unchanged
+  })
+
+  it('marks a scorer whose team has no flag and pluralises their penalties', () => {
+    const odd = [
+      {
+        num: 70,
+        stage: 'Group',
+        t1: 'Nowhere United',
+        t2: 'Colombia',
+        score: [2, 0],
+        goals: {
+          t1: [
+            { name: 'Spot Kicker', penalty: true },
+            { name: 'Spot Kicker', penalty: true },
+          ],
+          t2: [],
+        },
+      },
+    ]
+    render(<StatsView matches={odd} hideScores={false} />)
+    expect(document.querySelector('.boot-flag').textContent).toBe('•')
+    expect(screen.getByText('2 pens')).toBeInTheDocument()
   })
 })

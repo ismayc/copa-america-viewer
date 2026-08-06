@@ -159,6 +159,31 @@ describe('PathPicker', () => {
     expect(screen.queryByText(/Up next/)).not.toBeInTheDocument()
   })
 
+  it('clears the path by picking the empty option back out of the dropdown', () => {
+    // The "Pick a team…" entry carries an empty value; choosing it has to clear
+    // the highlight rather than trace a team with no name.
+    renderWith(<PathPicker byNum={matchesByNum(withPath(QF_TEAMS))} />)
+    const select = screen.getByLabelText(/Path to the Final/)
+    fireEvent.change(select, { target: { value: 'Argentina' } })
+    expect(screen.getByText(/Up next/)).toBeInTheDocument()
+    fireEvent.change(select, { target: { value: '' } })
+    expect(screen.queryByText(/Up next/)).not.toBeInTheDocument()
+    expect(select.value).toBe('')
+  })
+
+  it('summarizes a team that has reached the Final but not yet played it', () => {
+    // Everything up to the Final is decided and Argentina are in it — one step
+    // short of the champions line, which only lands once the Final is final.
+    const inTheFinal = {
+      25: { t1: 'Argentina', t2: 'Ecuador', score: [2, 0] },
+      29: { t1: 'Argentina', score: [1, 0] },
+      32: { t1: 'Argentina', t2: 'Colombia' },
+    }
+    renderWith(<PathPicker byNum={matchesByNum(withPath(inTheFinal))} />, { pathTeam: 'Argentina' })
+    expect(screen.getByText(/In the Final/)).toBeInTheDocument()
+    expect(screen.queryByText(/Champions/)).toBeNull()
+  })
+
   it('summarizes "through to the next round" after winning its deepest match', () => {
     // Won the quarter-final (25); the semi-final (29) doesn't list Argentina
     // yet → "through to the Semi-final".

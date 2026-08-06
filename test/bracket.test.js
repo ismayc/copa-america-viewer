@@ -19,6 +19,16 @@ describe('groupSlotMap', () => {
     }
   })
 
+  it('ignores an entry-round side that names neither a group winner nor a runner-up', () => {
+    // The entry round is where the groups feed in, so both its sides normally
+    // read "Winner/Runner-up Group X". A side carrying anything else — a feeder
+    // from another tie, a name a refresh resolved early — belongs to no group
+    // and must simply not be filed under one.
+    const odd = { num: 9001, stage: 'QF', label1: 'Winner Match 5', label2: 'Runner-up Group B' }
+    const only = groupSlotMap([odd])
+    expect(only).toEqual({ B: { win: null, runnerUp: 9001 } })
+  })
+
   it('resolves the documented slots for Group A', () => {
     // M25 = "Winner Group A"; M26 = "Runner-up Group A".
     expect(map['A']).toEqual({ win: 25, runnerUp: 26 })

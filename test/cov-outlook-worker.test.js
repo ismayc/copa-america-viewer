@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { MATCHES as PLAYED } from '../src/data/matches.js'
 import { unscored } from './helpers/tournament.js'
 // This edition is finished, so the committed schedule ships with every result
@@ -32,6 +32,34 @@ describe('outlook.worker', () => {
     // bookkeeping, and this format has no cross-group race to explain.
     expect(Array.isArray(done.survivors)).toBe(true)
     expect(done).not.toHaveProperty('requirements')
+  })
+
+  it('reports a thrown value that carries no message', async () => {
+    // Whatever comes out of the enumerator has to cross the worker boundary as a
+    // string: a thrown value with no `.message` (anything that isn't an Error)
+    // must still reach the page as text rather than as "undefined".
+    vi.resetModules()
+    vi.doMock('../src/utils/outlookEnum.js', () => ({
+      enumerateOutlook: () => {
+        throw 'the enumerator gave up'
+      },
+    }))
+    try {
+      await import('../src/workers/outlook.worker.js')
+      const seen = []
+      self.postMessage = (m) => seen.push(m)
+      self.onmessage({ data: [] })
+      expect(seen).toEqual([{ type: 'error', message: 'the enumerator gave up' }])
+    } finally {
+      vi.doUnmock('../src/utils/outlookEnum.js')
+      vi.resetModules()
+    }
+  })
+
+  afterAll(() => {
+    // The worker sets a module-level listener on `self`; leave the environment
+    // as we found it for anything else sharing this jsdom.
+    delete self.onmessage
   })
 
   it('posts an error message when enumeration throws', () => {

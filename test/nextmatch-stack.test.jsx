@@ -82,3 +82,42 @@ describe('NextMatch — stacking simultaneous upcoming matches', () => {
     expect(screen.queryByText(a.t1)).toBeNull()
   })
 })
+
+// Both stacks label a group match "Group A" and anything else by its stage, and
+// both fall back to a neutral mark when the flag table has never heard of the
+// team — which is what a knockout row looks like the moment a feeder resolves to
+// a name a data refresh has renamed. The single-card path already covers these;
+// the stacked rows are a second, separate copy of the same markup.
+describe('NextMatch — stacked rows for knockout matches', () => {
+  const koPair = (extra = {}) => [
+    { ...a, num: 9001, stage: 'QF', group: undefined, t1: 'Nowhere United', t2: 'Elsewhere City', ko: '2023-08-12T07:00:00Z', ...extra },
+    { ...b, num: 9002, stage: 'SF', group: undefined, t1: 'Somewhere Rovers', t2: 'Anywhere Athletic', ko: '2023-08-12T07:00:00Z', ...extra },
+  ]
+
+  it('labels live stacked rows by stage and marks teams with no flag', () => {
+    renderNM(koPair().map(live))
+    const rows = document.querySelectorAll('.nm-live-row')
+    expect(rows).toHaveLength(2)
+    expect(screen.getByText(/Quarter-final ·/)).toBeInTheDocument()
+    expect(screen.getByText(/Semi-final ·/)).toBeInTheDocument()
+    const flags = [...document.querySelectorAll('.nm-flag')].map((n) => n.textContent)
+    expect(flags).toEqual(['•', '•', '•', '•'])
+  })
+
+  it('labels upcoming stacked rows by stage, marks flagless teams, and counts whole days', () => {
+    vi.useFakeTimers()
+    // Three-and-a-bit days out, so the countdown shows a days figure the
+    // same-day stack above never reaches.
+    vi.setSystemTime(new Date('2023-08-09T00:00:00Z'))
+    try {
+      renderNM(koPair())
+      expect(screen.getByText('2 at once')).toBeInTheDocument()
+      expect(screen.getByText(/Quarter-final ·/)).toBeInTheDocument()
+      const flags = [...document.querySelectorAll('.nm-flag')].map((n) => n.textContent)
+      expect(flags).toEqual(['•', '•', '•', '•'])
+      expect(document.querySelector('.nm-stack-bottom .nm-countdown').textContent).toMatch(/^3d/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

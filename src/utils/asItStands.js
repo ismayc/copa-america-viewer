@@ -43,8 +43,10 @@ export function projectKnockout(matches) {
   const first = {}
   const second = {}
   for (const g of GROUPS) {
+    /* v8 ignore start -- unreachable: rankGroup seeds its rows from the committed group, so every group always has a 1st and a 2nd */
     first[g] = qual.groups[g]?.[0] || null
     second[g] = qual.groups[g]?.[1] || null
+    /* v8 ignore stop */
   }
 
   // Every entry-round side, with its parsed slot, indexed by match.
@@ -67,6 +69,7 @@ export function projectKnockout(matches) {
     if (s.slot.type === 'runner') return second[s.slot.group]
     return null
   }
+  /* v8 ignore next -- unreachable: every entry match pushed both of its sides into byMatch above, so the lookup always hits */
   const opponentOf = (s) => teamForSide((byMatch.get(s.matchNum) || []).find((o) => o !== s))
 
   const perGroup = {}
@@ -78,6 +81,7 @@ export function projectKnockout(matches) {
     const key = s.slot.type === 'winner' ? 'first' : 'second'
     const table = s.slot.type === 'winner' ? first : second
     perGroup[s.slot.group][key] = {
+      /* v8 ignore next -- unreachable: `first`/`second` are filled for every group above, so the side always names a team */
       team: table[s.slot.group]?.name || null,
       opponent: opp?.name || null,
       matchNum: s.matchNum,

@@ -107,3 +107,70 @@ describe('Standings — projection off, and a clinch the table cannot place', ()
     expect(container.textContent).not.toMatch(/Nowhere United/)
   })
 })
+
+describe('Standings — what "as it stands" shows when the bracket cannot answer', () => {
+  // A full Group A round-robin, every game 0-0, so the table is level all the
+  // way down to the soft criteria.
+  const A = ['Argentina', 'Canada', 'Chile', 'Peru']
+  const PAIRS = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
+  const groupA = (over = {}) =>
+    PAIRS.map(([i, j], k) => ({
+      num: 100 + k,
+      stage: 'Group',
+      group: 'A',
+      t1: A[i],
+      t2: A[j],
+      ko: `2024-06-2${k}T15:00:00Z`,
+      venue: 'mercedesbenz',
+      score: [0, 0],
+      ...(over[k] || {}),
+    }))
+
+  it('says a placing was separated on cards, and calls the card data best-effort', () => {
+    // A red card is the only thing between two of these teams, so the tie-break
+    // mark has to name the disciplinary record rather than the drawing of lots —
+    // and say out loud that the card figures are best-effort.
+    const board = groupA({ 2: { cards: { t1: [], t2: [{ color: 'red' }] } } })
+    const { container } = render(
+      <FollowProvider>
+        <Standings matches={board} hideScores={false} clinch={computeClinch(board)} />
+      </FollowProvider>,
+    )
+    const titles = [...container.querySelectorAll('.tiebreak-mark')].map((n) => n.getAttribute('title'))
+    expect(titles.some((t) => /disciplinary record/i.test(t))).toBe(true)
+    expect(titles.some((t) => /best-effort card data/.test(t))).toBe(true)
+  })
+
+  it('shows TBD when the tie a qualifier feeds into has no group slot opposite', () => {
+    const board = [
+      ...groupA(),
+      { num: 900, stage: 'QF', t1: 'Winner Group A', t2: 'Winner Match 5', ko: '2024-07-05T15:00:00Z' },
+    ]
+    const { container } = render(
+      <FollowProvider>
+        <Standings matches={board} hideScores={false} clinch={computeClinch(board)} />
+      </FollowProvider>,
+    )
+    const row = container.querySelector('.ais-row')
+    expect(row.querySelector('.ais-opp').textContent).toBe('TBD')
+  })
+
+  it('offers a through team no matchup at all when neither source can name one', () => {
+    // A board with no knockout fixtures on it (they are published later) and a
+    // team known only to be top two, so its finishing position — and therefore
+    // its side of the draw — is still open. Neither the locked opponent nor the
+    // "as it stands" projection has anything to say, and the modal has to open
+    // on the clinch verdict alone rather than on a half-filled matchup.
+    const board = groupA()
+    const clinch = { Argentina: 'top2' }
+    const { container } = render(
+      <FollowProvider>
+        <Standings matches={board} hideScores={false} clinch={clinch} />
+      </FollowProvider>,
+    )
+    clickTeam(container, 'Argentina')
+    expect(document.querySelector('.gg-knockout')).toBeTruthy()
+    expect(document.querySelector('.gg-ko-tbd').textContent).toBe('To be determined')
+    expect(document.querySelector('.gg-ko-num')).toBeNull()
+  })
+})

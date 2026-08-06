@@ -47,6 +47,17 @@ describe('ChampionBanner', () => {
     expect(screen.queryByText(/are the 2024 Copa América champions/)).not.toBeInTheDocument()
   })
 
+  it('renders nothing at all when the board has no Final', () => {
+    // Before the fixture list is published there is no Final to read, so the
+    // banner is asked about nothing rather than about an undecided Final.
+    const { container } = render(
+      <DetailContext.Provider value={vi.fn()}>
+        <ChampionBanner match={null} hideScores={false} />
+      </DetailContext.Provider>,
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
   it('stays hidden when the Final slots are still placeholders', () => {
     renderBanner(final({ t1: 'Winner Match 29', t2: 'Winner Match 30', score: [1, 0] }))
     expect(screen.queryByText(/are the 2024 Copa América champions/)).not.toBeInTheDocument()

@@ -45,10 +45,14 @@ function AsItStands({ proj, onGoToMatch }) {
     return (
       <li className="ais-row" key={label}>
         <span className="ais-pos">{label}</span>
-        <span className="ais-team">{FLAG_BY_TEAM[team] || ''} {team}</span>
+        {/* Both names come out of the group tables, so they are committed
+            members of this edition and always have a flag. The opponent is the
+            one that can be missing: a knockout tie whose other side is not a
+            group slot leaves it unprojected. */}
+        <span className="ais-team">{FLAG_BY_TEAM[team]} {team}</span>
         <span className="ais-vs">vs</span>
         <span className="ais-opp">
-          {opp ? `${FLAG_BY_TEAM[opp] || ''} ${opp}` : 'TBD'}
+          {opp ? `${FLAG_BY_TEAM[opp]} ${opp}` : 'TBD'}
         </span>
         {d?.matchNum &&
           (onGoToMatch ? (
@@ -239,9 +243,11 @@ export default function Standings({ matches, tz, hideScores, clinch, onGoToMatch
     const status = clinch?.[team]
     const through = status === 'won-group' || status === 'runner-up' || status === 'top2'
     if (!through) return null
+    /* v8 ignore next -- unreachable: computeQualification ranks every group of the committed table, so `qual.groups[group]` is always an array */
     const row = (qual.groups[group] || []).find((r) => r.name === team)
     /* v8 ignore next -- unreachable: the group/team pair comes from a rendered standings row, so the team is always among that group's computed rows */
     if (!row) return null
+    /* v8 ignore next -- unreachable: projectKnockout seeds an entry for every group, so `perGroup[group]` is always there */
     const proj = perGroup[group] || {}
     // A 'won-group'/'runner-up' verdict pins the exact finishing position, so use
     // it directly; otherwise (top2, order not yet split) fall back to the current
