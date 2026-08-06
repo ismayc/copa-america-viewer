@@ -1,9 +1,10 @@
 [build]
-  # coverage:badge runs the suite and writes public/coverage.json, which vite then
-  # copies into dist/ — that file is the endpoint the README's coverage badge reads.
-  # Netlify builds this repo straight from Git (the site is linked in the Netlify
-  # UI), so this is the only place the badge JSON gets generated for the live site.
-  command = "npm run coverage:badge && npm run build"
+  # Deliberately just the build. Netlify builds this repo straight from Git and is the
+  # fallback that keeps deploying when GitHub Actions is down — so it must not depend on
+  # the test suite, where one flaky run would block the very host we fall back to.
+  # public/coverage.json is committed instead, and vite copies it into dist/ for the
+  # README badge; CI still fails below 100%, so the committed value cannot lie.
+  command = "npm run build"
   publish = "dist"
 
 [functions]
