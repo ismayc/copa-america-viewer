@@ -442,7 +442,11 @@ describe('App coverage', () => {
       const before = region().textContent
       goals = [...goals, ...Array.from({ length: 6 }, (_, i) => ({ side: 'home', name: `Flood${i}`, minute: 30 + i }))]
       fireEvent.click(document.querySelector('.results-refresh'))
-      await vi.advanceTimersByTimeAsync(100)
+      // Deterministic settle point: the refreshed live score (8–0) rendering
+      // proves the flood batch has been fetched, merged AND run through the
+      // goal-detect effect — a bare timer advance can leave that effect still
+      // queued, silently asserting against the pre-flood board.
+      await vi.waitFor(() => expect(document.body.textContent).toMatch(/8\s*–\s*0/))
       expect(region().textContent).toBe(before)
       expect(region().textContent).not.toMatch(/Flood/)
     } finally {

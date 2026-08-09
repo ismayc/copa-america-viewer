@@ -15,6 +15,7 @@ import {
   newlyClinched,
   clinchHeadline,
   clinchBadge,
+  groupPositionBounds,
 } from '../src/utils/clinch.js'
 
 const GROUPS = Object.keys(TEAMS)
@@ -323,6 +324,41 @@ describe('resolveClinchedSlots — leaves runner-up slots alone', () => {
     // Runner-up placeholders are untouched.
     expect(find(25).t2).toBe('Runner-up Group B')
     expect(find(26).t2).toBe('Runner-up Group A')
+  })
+})
+
+describe('groupPositionBounds', () => {
+  it('reads 1–4 for every team while nothing has been played (points fallback)', () => {
+    // Six remaining games per group is far over the scoreline budget, so every
+    // bound comes from the sound points-only pass — and with no results at all,
+    // every position is genuinely open.
+    const bounds = groupPositionBounds(MATCHES)
+    for (const g of GROUPS) {
+      for (const t of TEAMS[g]) expect(bounds[t.name]).toEqual({ best: 1, worst: 4 })
+    }
+  })
+
+  it('is exact (goal difference and head-to-head included) when the group is enumerable', () => {
+    // Group A with two games left (M2 Peru v Chile, M9 Chile v Argentina — an
+    // enumerable fan-out): Canada played all three for 1 point, Argentina beat
+    // Canada and Peru, Chile beat Canada, Peru drew Canada.
+    const bounds = groupPositionBounds(
+      withScores({ 1: [2, 0], 10: [1, 1], 18: [0, 1], 17: [1, 0] }),
+    )
+    expect(bounds['Argentina']).toEqual({ best: 1, worst: 2 })
+    expect(bounds['Chile']).toEqual({ best: 1, worst: 3 })
+    expect(bounds['Peru']).toEqual({ best: 2, worst: 4 })
+    expect(bounds['Canada']).toEqual({ best: 3, worst: 4 })
+  })
+
+  it('locks every position once a group is complete — straight from the real results', () => {
+    // The committed 2024 data: Group A finished Argentina 9, Canada 4, Chile 2,
+    // Peru 1 — every finish locked to its real final position.
+    const bounds = groupPositionBounds(PLAYED)
+    expect(bounds['Argentina']).toEqual({ best: 1, worst: 1 })
+    expect(bounds['Canada']).toEqual({ best: 2, worst: 2 })
+    expect(bounds['Chile']).toEqual({ best: 3, worst: 3 })
+    expect(bounds['Peru']).toEqual({ best: 4, worst: 4 })
   })
 })
 
