@@ -21,11 +21,14 @@ describe('scoreboardDates', () => {
 })
 
 describe('historyDates', () => {
-  it('lists distinct UTC dates of already-finished matches, excluding the live window', () => {
+  it('lists distinct ESPN (US-Eastern) days of finished matches, excluding the live window', () => {
     // Base: June 26 noon UTC. Live window (scoreboardDates) = Jun 25/26/27, so
-    // those are excluded; earlier match days (Jun 21–24) are the backfill set.
+    // those are excluded; earlier match days (Jun 20–24 EASTERN) are the backfill
+    // set. The opener kicks off 8pm ET June 20 — 00:00Z on the 21st — and ESPN
+    // files it under the 20th; the old UTC-day conversion asked for the 21st and
+    // the backfill silently missed such matches.
     const dates = historyDates(MATCHES, new Date('2024-06-26T12:00:00Z'))
-    expect(dates).toEqual(['20240621', '20240622', '20240623', '20240624'])
+    expect(dates).toEqual(['20240620', '20240621', '20240622', '20240623', '20240624'])
   })
 
   it('skips a fixture that has no kickoff instant yet', () => {
@@ -43,8 +46,9 @@ describe('historyDates', () => {
 
   it('excludes matches that have not kicked off yet', () => {
     const dates = historyDates(MATCHES, new Date('2024-06-23T12:00:00Z'))
-    // Jun 22/23/24 are in the live window; only Jun 21 is older + finished.
-    expect(dates).toEqual(['20240621'])
+    // Jun 22/23/24 are in the live window; the Jun 20 + 21 Eastern days are
+    // older + finished, and later kickoffs are still in the future.
+    expect(dates).toEqual(['20240620', '20240621'])
   })
 })
 

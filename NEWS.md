@@ -18,6 +18,15 @@ data/source updates, deployment). Newest day on top.
   team's fate outright. Mirrors the Finish column the WNBA/NBA/NFL viewers
   carry.
 
+## 2026-08-09
+
+- **Card/sub backfill finds every match now.** `historyDates` filed each
+  kickoff under its UTC day, but ESPN buckets `dates=` queries by the
+  US-Eastern day — and 24 of 32 kickoffs cross midnight UTC, so several
+  matches (the opener, the QF, a semi, the third-place game) were queried on
+  the wrong day and their cards and substitutions never reached the detail
+  view or the conduct tiebreak. Days are now computed in America/New_York.
+
 ## 2026-08-08
 
 - **Condensed view strip.** Once the header's view switch scrolls out of view, a
