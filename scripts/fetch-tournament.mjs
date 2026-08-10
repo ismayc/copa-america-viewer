@@ -42,6 +42,7 @@
 import { writeFileSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { getText, getJson } from './lib/fetch.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DRY = process.argv.includes('--dry')
@@ -156,41 +157,6 @@ const VENUE_META = {
 // src/services/results.js.
 const ALIASES = {}
 const canon = (name) => ALIASES[name] || name
-
-// ---------------------------------------------------------------------------
-// Fetch plumbing
-// ---------------------------------------------------------------------------
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-
-// 1s, 2s, 4s, 8s, plus up to 500ms of jitter so parallel callers don't all retry
-// in lockstep and re-create the burst that caused the failure.
-const backoffMs = (attempt) => 2 ** attempt * 1000 + Math.random() * 500
-
-// ESPN 500s at random under load; retry only what's worth retrying (5xx, 429, or
-// a network-level error). A 404 is a real answer and fails immediately rather
-// than sleeping 15 seconds first.
-async function getText(url, tries = 5) {
-  let lastErr
-  for (let attempt = 0; attempt < tries; attempt++) {
-    if (attempt) await sleep(backoffMs(attempt - 1))
-
-    let res
-    try {
-      res = await fetch(url)
-    } catch (err) {
-      lastErr = err
-      continue
-    }
-
-    if (res.ok) return await res.text()
-    if (res.status < 500 && res.status !== 429) throw new Error(`${url}\n  HTTP ${res.status}`)
-    lastErr = new Error(`HTTP ${res.status}`)
-  }
-  throw new Error(`${url}\n  ${lastErr.message} — still failing after ${tries} attempts`)
-}
-
-const getJson = async (url) => JSON.parse(await getText(url))
 
 // ---------------------------------------------------------------------------
 // ESPN → normalized events
