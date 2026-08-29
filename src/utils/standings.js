@@ -1,5 +1,6 @@
-// Group standings. Ranking (incl. UEFA tie-breakers) lives in qualification.js;
-// this module keeps the small surface the Standings UI/tests rely on.
+// Group standings. Ranking (CONMEBOL's Copa América 2024 tie-breakers) lives in
+// qualification.js; this module keeps the small surface the Standings UI/tests
+// rely on.
 
 import { rankGroup } from './qualification.js'
 

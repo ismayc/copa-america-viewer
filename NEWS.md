@@ -42,6 +42,16 @@ data/source updates, deployment). Newest day on top.
   deploy job alone carries a job-level `pages` group so Pages publishes stay serialized.
   The eight sibling repos and the workflow template in `sports-viewer-meta` already had
   this shape; these four viewers were the last without it.
+- **Fixed a wrong attribution in `standings.js`.** Its header said ranking used "UEFA
+  tie-breakers"; `qualification.js` implements CONMEBOL's Copa América 2024 chain, which
+  separates red and yellow cards. Left over from scaffolding. Comment only.
+- **Fixed a racy assertion in the StatsView override test.** The test waits for a player's
+  name, then reads his assists and minutes cells. The name appears as soon as the aggregate
+  fetch resolves, but the values under test come from a second fetch that lands a render
+  later, so on a loaded runner the assertion read the pre-override numbers. It failed once
+  in three full local runs today. The assertion now waits for the overridden values instead
+  of the name. Confirmed with teeth: with the override deliberately delayed the old
+  assertion fails and the new one passes.
 
 ## 2026-08-16
 
