@@ -4,6 +4,13 @@ A dated changelog for the Copa América 2024 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-08-29
+
+- Rewrote the repo's `verify` skill. It was a near-verbatim copy of the World Cup
+  viewer's and described that app: the wrong OpenFootball feed, a "Match 101" this
+  tournament does not have, and a knockout range from a 104-match bracket. Every
+  selector in the new file was probed against this app.
+
 ## 2026-08-16
 
 - **The data scripts now fetch from `site.web.api.espn.com`.** ESPN's edge started
