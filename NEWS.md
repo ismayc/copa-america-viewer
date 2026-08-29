@@ -6,6 +6,16 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-08-29
 
+- **Fixed: downloaded calendar events were titled "EURO:".** `utils/ics.js` carried
+  the Euros' prefix from scaffolding, so "Add to calendar" produced
+  "EURO: Argentina vs Colombia". The subscribe feed already emitted
+  "Copa América 2024:", so the download and the subscription disagreed about which
+  tournament this is. A test asserted `SUMMARY:EURO:`, so the bug was covered
+  rather than caught.
+- **Fixed: live scores could not load at all.** The browser code called
+  `site.api.espn.com`, which now 403s any request with a browser User-Agent and
+  returns no CORS headers with it. Moved to `site.web.api`, which serves the
+  identical routes.
 - Rewrote the repo's `verify` skill. It was a near-verbatim copy of the World Cup
   viewer's and described that app: the wrong OpenFootball feed, a "Match 101" this
   tournament does not have, and a knockout range from a 104-match bracket. Every

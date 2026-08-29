@@ -19,7 +19,7 @@ import { normalizeTeam, isRealTeam, pairKey } from './results.js'
 
 export const LIVE_SOURCE = {
   name: 'ESPN',
-  url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.america/scoreboard',
+  url: 'https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.america/scoreboard',
   homepage: 'https://www.espn.com/soccer/',
 }
 

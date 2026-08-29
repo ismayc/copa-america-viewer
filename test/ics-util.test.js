@@ -38,7 +38,7 @@ describe('buildICS (per-match calendar)', () => {
 
   it('uses the stage label for non-group matches', () => {
     const ics = buildICS(knockoutMatch)
-    expect(ics).toContain('SUMMARY:EURO:')
+    expect(ics).toContain('SUMMARY:Copa América:')
     // Knockout match has no "Group X" — uses STAGE_LABELS instead.
     expect(ics).not.toContain(`Group ${knockoutMatch.group}`)
   })

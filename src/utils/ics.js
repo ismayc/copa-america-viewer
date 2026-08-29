@@ -38,7 +38,7 @@ export function buildICS(match) {
   const end = new Date(start.getTime() + MATCH_MINUTES * 60 * 1000)
   const stageLabel = match.stage === 'Group' ? `Group ${match.group}` : STAGE_LABELS[match.stage]
 
-  const summary = `EURO: ${match.t1} vs ${match.t2}`
+  const summary = `Copa América: ${match.t1} vs ${match.t2}`
   const location = `${venue.name}, ${venue.city}, ${venue.country}`
   const description = [
     `${stageLabel} · Match ${match.num}`,
@@ -72,7 +72,7 @@ function buildVEvent(match) {
   const end = new Date(start.getTime() + MATCH_MINUTES * 60 * 1000)
   const stageLabel = match.stage === 'Group' ? `Group ${match.group}` : STAGE_LABELS[match.stage]
   const score = Array.isArray(match.score) ? ` (${match.score[0]}–${match.score[1]})` : ''
-  const summary = `EURO: ${match.t1} vs ${match.t2}${score}`
+  const summary = `Copa América: ${match.t1} vs ${match.t2}${score}`
   const location = `${venue.name}, ${venue.city}, ${venue.country}`
   const description = [
     `${stageLabel} · Match ${match.num}`,

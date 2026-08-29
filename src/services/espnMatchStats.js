@@ -15,7 +15,7 @@ import { nameKey } from '../utils/tournamentStats.js'
 
 export const SUMMARY_SOURCE = {
   name: 'ESPN',
-  url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.america/summary',
+  url: 'https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.america/summary',
 }
 
 const CACHE_PREFIX = 'copa:matchLines:'
