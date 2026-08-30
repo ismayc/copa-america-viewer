@@ -1,0 +1,9 @@
+{
+  "_comment": "Instants the live calendar feed emits that the committed schedule does not hold. Every entry must say why. See sports-viewer-meta/scripts/smoke-prod.mjs.",
+  "feedStartMismatch": [
+    {
+      "iso": "2024-07-15T00:00:00Z",
+      "why": "The final at Hard Rock Stadium kicked off about 82 minutes late after crowd trouble at the gates. src/data/matches.js records the 21:15 EDT actual start; ESPN keeps the 20:00 EDT scheduled one."
+    }
+  ]
+}
