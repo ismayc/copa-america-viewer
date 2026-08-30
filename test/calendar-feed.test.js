@@ -122,3 +122,31 @@ describe('handler — the .ics the feed serves', () => {
     expect(ev).toContain('State Farm Stadium')
   })
 })
+
+// Lines copa.txt can legitimately contain that are not fixtures, and one it
+// should never contain. Uncovered until netlify/functions joined the coverage
+// gate: OpenFootball is a hand-edited text file, so tolerating an unparseable
+// line is the whole point, and the tolerance was untested.
+describe('lines that are not fixtures', () => {
+  it('skips a line that does not parse as a fixture at all', () => {
+    // Prose and stray notes appear in these files between the fixture blocks.
+    expect(parseFixtures('some free text that is not a fixture line\n')).toEqual([])
+  })
+
+  it('skips a fixture line whose month abbreviation is not a month', () => {
+    // The fixture pattern matches any three word characters where the month
+    // goes, so a typo upstream parses structurally and would otherwise become
+    // an event on a NaN date in a subscriber's calendar.
+    const good = 'Fri Jun 21 21:00 UTC-5  Argentina 2-0 Canada @ Mercedes-Benz Stadium'
+    const bad = good.replace('Jun', 'Jly')
+    expect(parseFixtures(good)).toHaveLength(1)
+    expect(parseFixtures(bad)).toEqual([])
+  })
+
+  it('leaves the location blank when a fixture names no venue', () => {
+    // The venue is optional in the pattern, and copa.txt omits it for some
+    // fixtures. A missing one must render as no LOCATION, not as "undefined".
+    const [f] = parseFixtures('Fri Jun 21 21:00 UTC-5  Argentina 2-0 Canada')
+    expect(f.venue).toBe('')
+  })
+})

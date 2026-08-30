@@ -23,6 +23,14 @@ data/source updates, deployment). Newest day on top.
   `scripts/smoke-known.json`: a delayed game. The committed schedule holds the time the
   game actually started and ESPN keeps the time it was scheduled for, so the app is right
   and the difference is expected.
+- **The calendar function is inside the coverage gate now.** `coverage.include` was
+  `src/**`, so the `webcal://` subscription endpoint, real shipped code that a
+  subscriber's calendar hits directly, was measured by nothing while the badge read
+  100%. It is now covered, and at 100% like everything else.
+- Added the missing cases for the defensive arms in the feed parser, which a
+  hand-edited or unexpected upstream payload reaches. A serverless endpoint has no
+  supervisor: an odd record must cost one skipped game, never a 500 that leaves every
+  subscriber without a calendar.
 
 ## 2026-08-29
 
