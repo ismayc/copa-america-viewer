@@ -4,6 +4,15 @@ A dated changelog for the Copa América 2024 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-09-06
+
+- **The calendar legend drew two swatches for groups that do not exist.**
+  `groupColors.js` listed six fixed letters and this tournament has four, so E and F were
+  dead entries rendered by `Object.entries(GROUP_COLORS)`. The map is now derived from the
+  tournament's own groups, and a new test asserts it matches `TEAMS` exactly in both
+  directions.
+- Added the stage-search coverage test that walks `STAGE_ORDER`.
+
 ## 2026-09-05 (later)
 
 - **The visual identity is now the family's results-board system.** The old look was a set
