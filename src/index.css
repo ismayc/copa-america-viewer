@@ -1,50 +1,87 @@
+/* ===========================================================================
+   Copa América - visual system
+   ---------------------------------------------------------------------------
+   A RESULTS BOARD, not a page of cards. Structure comes from hairline rules and
+   a grid; color is information rather than decoration; one grotesque is used at
+   two extremes so the numbers - the kickoff time, the score, the points column -
+   carry the personality.
+
+   Shared with every viewer in this family. What differs per app is the ACCENT,
+   which is that competition's own hue and is spent only on what is happening
+   now: live, next up, the selected view.
+   =========================================================================== */
+
 :root,
 :root[data-theme='dark'] {
-  --bg: #0a1430;
-  --bg-soft: #131f42;
-  --card: #17244a;
-  --card-hover: #1e2d58;
-  --border: #2b3a68;
-  --text: #e8edf6;
-  --text-dim: #97a3b8;
-  --text-faint: #6b7689;
-  /* Accent contrast (WCAG AA needs 4.5:1 for body text): #4f8cff is 5.65:1 on
-     --bg, 4.70:1 on --card, and --accent-ink is 5.76:1 on the accent fill. */
-  --accent: #4f8cff;
-  --accent-ink: #06122e;
-  --accent-2: #ff5a5f;
-  --gold: #f4c542;
-  --silver: #c3ccdb;
-  --live: #ff4757;
-  --delay: #f5a623;
-  --radius: 14px;
-  --shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  color-scheme: dark;
+  --bg: #15171b;
+  --bg-soft: #1b1e23;
+  --card: #1b1e23;
+  --card-hover: #23262d;
+  --border: #2f333b;
+  --rule: #3a3f49;
+  --text: #f0f1f3;
+  --text-dim: #a7adb8;
+  --text-faint: #767d89;
+
+  --accent: #e8b23a;
+  --accent-ink: #1a1712;
+  --accent-quiet: #e8b23a;
+
+  /* Structural blue: day bands, round plates, the next-match panel. It never
+     competes with the accent for attention. */
+  --court: #6f9fe0;
+  --court-deep: #2e5fa3;
+
+  /* Flat signal colors. These mean a competition outcome and nothing else. */
+  --through: #4bb37a;
+  --out: #e06561;
+  --gold: #e0a92e;
+  --silver: #aeb6c2;
+  --live: #e0554f;
+  --delay: #e0a92e;
+  --accent-2: #6f9fe0;
+
+  --radius: 2px;
+  --radius-lg: 3px;
+  --shadow: none;
+  --shadow-float: 0 18px 40px rgba(0, 0, 0, 0.5);
+
+  --font: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   /* Condensed view strip: one fixed-height row (plus the notch inset on phones),
      declared as a token so the sticky filters panel and week column heads can
      offset beneath it without any JS measuring. */
   --view-strip-h: calc(44px + env(safe-area-inset-top, 0px));
-  --page-bg: radial-gradient(1200px 600px at 80% -10%, #1f2f66 0%, var(--bg) 55%);
+  --page-bg: var(--bg);
 }
 
 :root[data-theme='light'] {
-  --bg: #eef2f9;
-  --bg-soft: #ffffff;
+  color-scheme: light;
+  --bg: #e7e8ea;
+  --bg-soft: #f4f5f6;
   --card: #ffffff;
-  --card-hover: #f1f5fb;
-  --border: #d9e0ec;
-  --text: #131820;
-  --text-dim: #4d5a72;
-  --text-faint: #828ea3;
-  --accent: #1f5bd7;
+  --card-hover: #f4f5f6;
+  --border: #ccced3;
+  --rule: #b9bcc3;
+  --text: #101317;
+  --text-dim: #4a515c;
+  --text-faint: #767d89;
+  --accent: #8a6410;
   --accent-ink: #ffffff;
-  --accent-2: #e23b41;
-  --gold: #a9760a;
-  --silver: #5b6678;
-  --live: #e23b41;
-  --delay: #c97a00;
-  --shadow: 0 6px 20px rgba(20, 35, 80, 0.1);
-  --page-bg: radial-gradient(1200px 600px at 80% -10%, #e3ebfa 0%, var(--bg) 55%);
+  --accent-quiet: #8a6410;
+  --court: #2e5fa3;
+  --court-deep: #1e4278;
+  --through: #17683f;
+  --out: #a62a25;
+  --gold: #8a6410;
+  --silver: #5b6270;
+  --live: #a62a25;
+  --delay: #8a6410;
+  --accent-2: #2e5fa3;
+  --shadow: none;
+  --shadow-float: 0 18px 40px rgba(16, 19, 23, 0.18);
+  --page-bg: var(--bg);
 }
 
 * {
@@ -54,11 +91,36 @@
 body {
   margin: 0;
   background: var(--page-bg);
-  background-attachment: fixed;
   color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
+  font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+}
+
+/* Every figure in this app is data in a column: a kickoff time, a score, a
+   points total, a match number. They line up or they are useless. */
+:where(table, .card, .bx-match, .standings, .week-col, .nextmatch, .dm-row) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The display voice: the SAME family, pushed wide and heavy. One typeface used
+   at two extremes reads as two, without the mismatch of an actual second face.
+   Reserved for numerals and for headings that name a thing. */
+.wordmark,
+.day-header h2,
+.group-title,
+.kickoff,
+.score,
+.nm-countdown b,
+.md-score,
+.bx-score,
+.wc-time,
+.st-pts,
+.sd-num {
+  font-stretch: 118%;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 
 .app {
@@ -68,24 +130,35 @@ body {
 }
 
 /* ---------- Header ---------- */
+/* The masthead of a results board: the name set wide and heavy on the same left
+   edge every row below it uses, over a single heavy rule. The rule is the
+   design; there is no panel and no gradient behind it. */
 .app-header {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid var(--text);
+  padding-bottom: 12px;
 }
 .title-block h1 {
   margin: 0;
-  font-size: 2.1rem;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.6rem, 5.2vw, 2.35rem);
+  font-stretch: 118%;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
 }
 .trophy {
-  filter: drop-shadow(0 2px 6px rgba(244, 197, 66, 0.4));
+  font-size: 0.82em;
+  line-height: 1;
+  filter: none;
+  --unused-shadow: drop-shadow(0 2px 6px color-mix(in srgb, var(--gold) 40%, transparent));
 }
 .subtitle {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--text-dim);
-  font-size: 0.95rem;
+  font-size: 0.84rem;
 }
 .subtitle strong {
   color: var(--accent);
@@ -106,7 +179,7 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -120,7 +193,7 @@ body {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
+  border-radius: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -131,7 +204,7 @@ body {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 8px 14px;
-  border-radius: 9px;
+  border-radius: 2px;
   font-size: 0.82rem;
   cursor: pointer;
 }
@@ -144,7 +217,7 @@ body {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 8px 14px;
-  border-radius: 9px;
+  border-radius: 2px;
   font-size: 0.82rem;
   cursor: pointer;
 }
@@ -157,7 +230,7 @@ body {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
+  border-radius: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -252,7 +325,7 @@ body {
 .search {
   flex: 1 1 320px;
   padding: 11px 14px;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text);
@@ -269,7 +342,7 @@ select:focus {
 
 .search-toggle {
   padding: 11px 16px;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-dim);
@@ -282,7 +355,7 @@ select:focus {
 }
 .search-close {
   padding: 0 13px;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-dim);
@@ -317,7 +390,7 @@ select:focus {
 
 select {
   padding: 9px 11px;
-  border-radius: 9px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text);
@@ -341,7 +414,7 @@ select {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.74rem;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px dashed var(--border);
   background: var(--card);
   color: var(--accent);
@@ -365,7 +438,7 @@ select {
 }
 .stage-chip {
   padding: 6px 13px;
-  border-radius: 999px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-dim);
@@ -396,7 +469,7 @@ select {
 }
 .reset {
   padding: 8px 16px;
-  border-radius: 9px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
@@ -412,14 +485,16 @@ select {
 .day {
   margin-bottom: 26px;
 }
+/* A day is a BLOCK, not a stack of floating cards: one band naming the day,
+   then its matches as ruled rows sharing a single left edge. */
 .day-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 0 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  margin: 0;
+  padding: 0 0 6px;
+  border-bottom: 2px solid var(--court);
 }
 .day-header h2 {
   font-size: 1.02rem;
@@ -462,7 +537,7 @@ select {
   color: var(--text-faint);
   font-size: 0.74rem;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 2px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -470,46 +545,57 @@ select {
   color: var(--text);
   border-color: var(--accent);
 }
+/* No gap: the rows meet on a shared rule, the way a results table does. */
 .day-matches {
   display: grid;
-  gap: 12px;
+  gap: 0;
 }
 
 /* ---------- Match card ---------- */
+/* A row, not a card. The left rail is the scoreboard column: the kickoff in the
+   viewer's own zone, set big and tabular, with the zone and status beneath it.
+   The vertical rule runs the full height and is what makes ten rows read as one
+   board rather than as ten boxes. */
 .card {
   display: flex;
-  gap: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  transition: background 0.15s, transform 0.1s;
+  gap: 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 15px 4px 15px 0;
+  transition: background 0.12s;
 }
 .card:hover {
   background: var(--card-hover);
 }
+/* Live is the one state worth interrupting the grid for. */
 .card.status-live {
-  border-color: var(--live);
-  box-shadow: 0 0 0 1px var(--live) inset;
+  box-shadow: inset 3px 0 0 var(--live);
+  padding-left: 12px;
+  background: var(--card);
 }
 .card.status-finished {
-  opacity: 0.72;
+  opacity: 1;
+}
+.card.status-finished .kickoff {
+  color: var(--text-dim);
 }
 
 .card-time {
-  flex: 0 0 78px;
-  text-align: center;
-  border-right: 1px solid var(--border);
-  padding-right: 14px;
+  flex: 0 0 84px;
+  text-align: right;
+  border-right: 1px solid var(--rule);
+  padding-right: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
+  justify-content: flex-start;
+  align-items: flex-end;
+  gap: 1px;
 }
 .kickoff {
-  font-size: 1.18rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 1.32rem;
+  line-height: 1.05;
   white-space: nowrap;
 }
 .kickoff-tz {
@@ -552,7 +638,7 @@ select {
   display: inline-block;
   margin-top: 4px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: 2px;
   border: 1px solid var(--border);
   background: transparent;
   font-size: 0.62rem;
@@ -582,19 +668,26 @@ select {
   gap: 10px;
   margin-bottom: 8px;
 }
+/* Which group or round a match belongs to. A tinted capsule of tracked-out caps
+   was decoration around a fact; a solid plate in the structural blue, squared
+   off like a signage tab, IS the fact. Each knockout round takes a deeper
+   plate, so the bracket visibly climbs toward the Final. */
 .stage-badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 3px 9px;
-  border-radius: 6px;
-  background: rgba(0, 194, 168, 0.15);
-  color: var(--accent);
+  letter-spacing: 0.01em;
+  padding: 3px 7px;
+  border-radius: 0;
+  background: var(--court-deep);
+  color: #fff;
+  white-space: nowrap;
 }
-.stage-Final { background: rgba(244, 197, 66, 0.18); color: var(--gold); }
-.stage-SF, .stage-3rd { background: rgba(255, 90, 95, 0.16); color: var(--accent-2); }
-.stage-QF { background: rgba(255, 138, 76, 0.16); color: #ff8a4c; }
+.stage-R32 { background: #4a7cbd; }
+.stage-R16 { background: #3d6fb3; }
+.stage-QF { background: #2e5fa3; }
+.stage-SF { background: #244d87; }
+.stage-3rd { background: var(--silver); color: var(--bg); }
+.stage-Final { background: var(--accent); color: var(--accent-ink); }
 .match-num {
   font-size: 0.72rem;
   color: var(--text-faint);
@@ -696,14 +789,18 @@ select {
   gap: 8px;
   margin-top: 10px;
 }
+/* Bordered pills under every one of dozens of rows were the biggest source of
+   noise on the page. Secondary actions on a row whose job is to state a result:
+   quiet text, a rule only on hover. */
 .watch-toggle,
 .cal-btn {
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--text-faint);
+  padding: 2px 0;
+  border-radius: 0;
+  font-size: 0.76rem;
   cursor: pointer;
 }
 .watch-toggle:hover,
@@ -720,7 +817,7 @@ select {
 .feed {
   background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 10px 12px;
 }
 .feed-lang {
@@ -746,7 +843,7 @@ select {
 .chip {
   font-size: 0.76rem;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--card);
   border: 1px solid var(--border);
   color: var(--text);
@@ -816,13 +913,17 @@ select {
 .app-footer a { color: var(--accent); }
 
 /* ---------- Score & spoilers ---------- */
+/* A result does not need a container to be found. */
 .score {
-  font-size: 1.15rem;
+  font-size: 1.42rem;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 4px !important;
   font-weight: 800;
   letter-spacing: 0.02em;
   background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 2px 10px;
   color: var(--text);
 }
@@ -844,12 +945,13 @@ select {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 14px;
-  margin-bottom: 18px;
-  font-size: 0.82rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 0 10px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
   color: var(--text-dim);
 }
 .results-dot {
@@ -893,7 +995,7 @@ select {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
-  border-radius: 8px;
+  border-radius: 2px;
   font-size: 0.74rem;
   padding: 3px 6px;
   cursor: pointer;
@@ -903,7 +1005,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 5px 11px;
-  border-radius: 8px;
+  border-radius: 2px;
   font-size: 0.78rem;
   cursor: pointer;
 }
@@ -930,20 +1032,22 @@ select {
   justify-content: space-between;
   margin-top: 16px;
 }
+/* Views are TABS on the masthead rule, not pills inside a pill: a rule carries
+   the state, not a filled capsule. */
 .view-switch {
   display: inline-flex;
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 4px;
-  gap: 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  gap: 0;
 }
 .view-btn {
   background: transparent;
   border: none;
   color: var(--text-dim);
   padding: 8px 14px;
-  border-radius: 7px;
+  border-radius: 2px;
   font-size: 0.88rem;
   cursor: pointer;
 }
@@ -960,7 +1064,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 9px 14px;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -975,7 +1079,7 @@ select {
   color: var(--text-dim);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 8px 12px;
   margin: 0 0 12px;
 }
@@ -992,7 +1096,7 @@ select {
 }
 .legend-swatch {
   width: 14px; height: 14px; border-radius: 4px;
-  background: rgba(0, 194, 168, 0.18);
+  background: color-mix(in srgb, var(--through) 18%, transparent);
   border-left: 3px solid var(--accent);
   display: inline-block;
 }
@@ -1001,11 +1105,13 @@ select {
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
   gap: 14px;
 }
+/* A group is a block on the same grid as a day of the schedule: a heading over
+   a rule, then a table. */
 .group-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   /* Flex column so the "As it stands" block can pin to the bottom — keeping it
      at the same vertical position across a row even when a clinch badge makes
      one group's table taller (the grid already stretches cards to equal height). */
@@ -1013,9 +1119,12 @@ select {
   flex-direction: column;
 }
 .group-title {
-  margin: 0 0 10px;
-  font-size: 1rem;
-  color: var(--gold);
+  margin: 0 0 6px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--court);
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 .group-title-btn {
   background: none;
@@ -1050,7 +1159,10 @@ select {
   color: var(--text-dim);
 }
 .col-team { text-align: left !important; }
-.col-pts { color: var(--text) !important; font-weight: 700; }
+/* Points are what a standings table is FOR: set in the display face at the size
+   the score line uses, so the column the eye needs is the one it lands on. */
+.col-pts { color: var(--text) !important; font-weight: 800; }
+.standings-table .col-pts { font-stretch: 118%; font-size: 1.02rem; }
 /* Finish column — the group positions still arithmetically open; gold once locked. */
 .finish {
   font-variant-numeric: tabular-nums;
@@ -1062,14 +1174,14 @@ select {
   font-weight: 700;
 }
 .standings-table .qualifies td {
-  background: rgba(0, 194, 168, 0.07);
+  background: color-mix(in srgb, var(--through) 7%, transparent);
 }
 .standings-table .qualifies .col-team {
   border-left: 3px solid var(--accent);
 }
 /* On the bubble — provisional best-third place (yellow). */
 .standings-table .provisional td {
-  background: rgba(244, 197, 66, 0.08);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 .standings-table .provisional .col-team {
   border-left: 3px solid var(--gold);
@@ -1077,7 +1189,7 @@ select {
 /* Mathematically eliminated — muted grey ("faded out / done"), not red, so the
    only vivid red in the view is the pulsing LIVE indicator. */
 .standings-table .eliminated td {
-  background: rgba(128, 140, 162, 0.1);
+  background: color-mix(in srgb, var(--text-faint) 10%, transparent);
 }
 .standings-table .eliminated .col-team {
   border-left: 3px solid var(--text-faint);
@@ -1113,7 +1225,7 @@ select {
   color: var(--accent-ink);
   border: none;
   padding: 10px 18px;
-  border-radius: 9px;
+  border-radius: 2px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1126,7 +1238,7 @@ select {
   margin: 0 auto 14px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--card);
   display: flex;
   flex-direction: column;
@@ -1143,7 +1255,7 @@ select {
   border: 1px solid var(--border);
   background: var(--card-hover);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 5px 8px;
   font-size: 0.9rem;
   max-width: 100%;
@@ -1153,7 +1265,7 @@ select {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-dim);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 4px 9px;
   font-size: 0.8rem;
   cursor: pointer;
@@ -1163,7 +1275,7 @@ select {
   font-size: 0.85rem;
   font-weight: 600;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: 2px;
 }
 .path-status-alive { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .path-status-champ { color: var(--gold); background: color-mix(in srgb, var(--gold) 20%, transparent); }
@@ -1179,7 +1291,7 @@ select {
   border: 1px solid var(--border);
   background: var(--card-hover);
   color: var(--text-dim);
-  border-radius: 999px;
+  border-radius: 2px;
   padding: 3px 10px;
   font-size: 0.82rem;
   font-weight: 600;
@@ -1251,7 +1363,7 @@ select {
 .bx-match {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 8px 10px;
   cursor: pointer;
 }
@@ -1268,7 +1380,7 @@ select {
 .bx-match:hover { border-color: var(--accent); }
 .bx-col-final .bx-match {
   border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(244, 197, 66, 0.3) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent) inset;
 }
 .bx-meta {
   display: flex;
@@ -1357,7 +1469,7 @@ select {
   white-space: nowrap;
   padding: 9px 12px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--card);
   color: var(--text-dim);
   font-size: 0.82rem;
@@ -1496,7 +1608,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 8px 14px;
-  border-radius: 9px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 0.85rem;
 }
@@ -1531,7 +1643,7 @@ select {
 .week-col {
   background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 2px;
   display: flex;
   flex-direction: column;
   min-height: 120px;
@@ -1547,7 +1659,7 @@ select {
   position: sticky;
   top: 0;
   background: var(--bg-soft);
-  border-radius: 10px 10px 0 0;
+  border-radius: 2px 10px 0 0;
 }
 /* Pin beneath the condensed view strip instead of behind it. */
 .nav-away .week-col-head {
@@ -1563,7 +1675,7 @@ select {
 .week-day-btn {
   margin-left: 2px; align-self: center;
   background: var(--card); border: 1px solid var(--border); color: var(--text-dim);
-  width: 22px; height: 22px; border-radius: 6px; cursor: pointer; line-height: 1;
+  width: 22px; height: 22px; border-radius: 2px; cursor: pointer; line-height: 1;
   font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center;
 }
 .week-day-btn:hover, .week-day-btn:focus-visible { border-color: var(--accent); color: var(--text); outline: none; }
@@ -1574,7 +1686,7 @@ select {
 .dm-row {
   width: 100%; display: grid; align-items: center; gap: 8px;
   grid-template-columns: 92px 1fr auto auto;
-  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 9px;
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: 2px;
   padding: 8px 10px; cursor: pointer; text-align: left; color: var(--text); font: inherit;
 }
 .dm-row:hover, .dm-row:focus-visible { border-color: var(--accent); outline: none; }
@@ -1595,7 +1707,7 @@ select {
 .week-cell {
   border: 1px solid var(--border);
   border-left-width: 4px;
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 7px 8px;
   width: 100%;
   text-align: left;
@@ -1781,7 +1893,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 9px 13px;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -1816,7 +1928,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 9px 14px;
-  border-radius: 10px;
+  border-radius: 2px;
   font-size: 0.86rem;
   cursor: pointer;
 }
@@ -1824,7 +1936,7 @@ select {
 .myteams-count {
   background: var(--gold);
   color: var(--accent-ink);
-  border-radius: 9px;
+  border-radius: 2px;
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0 6px;
@@ -1900,7 +2012,7 @@ select {
 .nm-countdown b {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 2px;
   padding: 3px 7px;
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
@@ -1918,7 +2030,7 @@ select {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 8px 12px;
   cursor: pointer;
   color: inherit;
@@ -1937,7 +2049,7 @@ select {
   color: var(--accent-ink);
   border: none;
   padding: 8px 14px;
-  border-radius: 9px;
+  border-radius: 2px;
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
@@ -1958,7 +2070,7 @@ select {
 .md-card {
   background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 2px;
   width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
@@ -1975,7 +2087,7 @@ select {
   color: var(--text-dim);
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 2px;
   cursor: pointer;
   font-size: 0.9rem;
 }
@@ -2004,7 +2116,7 @@ select {
 .md-extra { font-size: 0.66rem; color: var(--text-faint); font-weight: 600; text-transform: uppercase; }
 .md-reveal {
   background: var(--card); border: 1px solid var(--border); color: var(--text-dim);
-  border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem;
+  border-radius: 2px; padding: 6px 10px; cursor: pointer; font-size: 0.8rem;
 }
 .md-meta { display: grid; gap: 6px; font-size: 0.86rem; color: var(--text-dim); margin-bottom: 16px; }
 .md-meta strong { color: var(--text); margin-right: 6px; font-weight: 600; }
@@ -2019,7 +2131,7 @@ select {
   color: var(--accent-ink);
   border: none;
   padding: 11px;
-  border-radius: 10px;
+  border-radius: 2px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -2036,20 +2148,20 @@ select {
 .gg-spoiler-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   flex-wrap: wrap; font-size: 0.82rem; color: var(--text-dim);
-  margin-bottom: 12px; padding: 8px 10px; border-radius: 8px; background: var(--card);
+  margin-bottom: 12px; padding: 8px 10px; border-radius: 2px; background: var(--card);
 }
 .gg-reveal {
   background: var(--accent); color: var(--accent-ink); border: none;
-  padding: 5px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  padding: 5px 10px; border-radius: 2px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
 }
 .gg-count {
   font-size: 0.7rem; font-weight: 600; color: var(--text-faint);
-  background: var(--card); border-radius: 999px; padding: 1px 8px; margin-left: 6px;
+  background: var(--card); border-radius: 2px; padding: 1px 8px; margin-left: 6px;
 }
 .gg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .gg-fixture {
   width: 100%; display: grid; gap: 4px; text-align: left;
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 2px;
   padding: 8px 10px; cursor: pointer; color: var(--text);
 }
 .gg-fixture:hover,
@@ -2071,22 +2183,22 @@ select {
 .gg-status { display: flex; justify-content: center; }
 .gg-badge {
   font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 1px 7px; border-radius: 999px;
+  padding: 1px 7px; border-radius: 2px;
 }
-.gg-final { background: rgba(0, 194, 168, 0.14); color: var(--accent); }
+.gg-final { background: color-mix(in srgb, var(--through) 14%, transparent); color: var(--accent); }
 .gg-upcoming { background: var(--card); color: var(--text-faint); border: 1px solid var(--border); }
 .gg-voided { background: rgba(240, 173, 78, 0.16); color: #f0ad4e; }
 .gg-delayed { background: rgba(240, 173, 78, 0.16); color: var(--delay); border: 1px solid var(--delay); }
 .gg-empty { font-size: 0.82rem; color: var(--text-faint); margin: 0; }
 .gg-knockout h4 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .gg-ko-badge {
-  font-size: 0.66rem; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 700; padding: 1px 7px; border-radius: 2px;
   text-transform: none; letter-spacing: 0;
 }
 .gg-ko-sub { font-size: 0.82rem; color: var(--text-dim); margin: 0 0 10px; }
 .gg-ko-match {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 2px;
   padding: 10px 12px;
 }
 .gg-ko-side { display: flex; align-items: center; gap: 6px; }
@@ -2094,7 +2206,7 @@ select {
 .gg-ko-tbd { color: var(--text-faint); font-style: italic; }
 .gg-ko-num {
   margin-left: auto; font-size: 0.66rem; font-weight: 700; color: var(--text-faint);
-  background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 2px; padding: 1px 8px;
 }
 .gg-ko-confirmed { font-size: 0.64rem; font-weight: 700; color: var(--accent); margin-left: 4px; white-space: nowrap; }
 .gg-ko-note { font-size: 0.74rem; color: var(--text-faint); margin: 8px 0 0; font-style: italic; }
@@ -2106,7 +2218,7 @@ select {
 .sc-left { font-size: 0.82rem; color: var(--text-faint); font-weight: 600; }
 .sc-clear {
   background: transparent; border: 1px solid var(--border); color: var(--text-dim);
-  padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+  padding: 6px 12px; border-radius: 2px; font-size: 0.8rem; cursor: pointer;
 }
 .sc-clear:hover { color: var(--accent-2); border-color: var(--accent-2); }
 .sc-empty { text-align: center; padding: 50px 20px; color: var(--text-dim); }
@@ -2120,14 +2232,14 @@ select {
 .sc-card-state.sc-decided { color: var(--accent); }
 .sc-fixtures { display: grid; gap: 8px; margin-bottom: 14px; }
 .sc-fixture {
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 2px; padding: 7px 10px;
 }
 .sc-fx-line { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
 .sc-score { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
 .sc-score-dash { font-size: 0.9rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 38px; text-align: center; }
 .sc-stepper { display: inline-flex; align-items: center; gap: 6px; }
 .sc-step {
-  width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+  width: 24px; height: 24px; border-radius: 2px; border: 1px solid var(--border);
   background: var(--bg); color: var(--text-dim); font-size: 0.9rem; font-weight: 700; cursor: pointer;
   line-height: 1;
 }
@@ -2139,7 +2251,7 @@ select {
 .sc-win { color: var(--accent); font-weight: 700; }
 .sc-fx-buttons { display: flex; gap: 4px; }
 .sc-pick {
-  width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border);
+  width: 26px; height: 26px; border-radius: 2px; border: 1px solid var(--border);
   background: var(--bg); color: var(--text-dim); font-size: 0.72rem; font-weight: 700; cursor: pointer;
 }
 .sc-pick:hover { border-color: var(--accent); color: var(--text); }
@@ -2147,11 +2259,11 @@ select {
 .sc-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
 .sc-table th { font-size: 0.66rem; text-transform: uppercase; color: var(--text-faint); text-align: center; padding: 4px 6px; font-weight: 600; }
 .sc-table td { text-align: center; padding: 5px 6px; font-size: 0.84rem; font-variant-numeric: tabular-nums; border-top: 1px solid var(--border); }
-.sc-table .qualifies td { background: rgba(0, 194, 168, 0.07); }
+.sc-table .qualifies td { background: color-mix(in srgb, var(--through) 7%, transparent); }
 .sc-tiebreak { margin-left: 5px; font-size: 0.78rem; cursor: help; vertical-align: middle; color: var(--gold); }
-.sc-tag { font-size: 0.6rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; margin-left: 6px; text-transform: uppercase; }
-.sc-adv { background: rgba(0, 194, 168, 0.18); color: var(--accent); }
-.sc-third { background: rgba(244, 197, 66, 0.2); color: var(--gold); }
+.sc-tag { font-size: 0.6rem; font-weight: 700; padding: 1px 6px; border-radius: 2px; margin-left: 6px; text-transform: uppercase; }
+.sc-adv { background: color-mix(in srgb, var(--through) 18%, transparent); color: var(--accent); }
+.sc-third { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
 .sc-r32 { border-top: 1px solid var(--border); padding-top: 10px; }
 .sc-r32-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin-bottom: 8px; }
 .sc-r32-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
@@ -2160,7 +2272,7 @@ select {
 .sc-r32-team { font-weight: 600; }
 .sc-r32-vs { font-size: 0.72rem; font-style: italic; color: var(--text-faint); }
 .sc-r32-opp { color: var(--text-dim); }
-.sc-r32-num { margin-left: auto; font-size: 0.62rem; font-weight: 700; color: var(--text-faint); background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }
+.sc-r32-num { margin-left: auto; font-size: 0.62rem; font-weight: 700; color: var(--text-faint); background: var(--card); border: 1px solid var(--border); border-radius: 2px; padding: 1px 7px; }
 .sc-r32-out { opacity: 0.7; }
 .sc-r32-note { font-size: 0.72rem; color: var(--text-faint); font-style: italic; }
 .sc-r32-lock { margin-left: 2px; font-size: 0.8rem; line-height: 1; }
@@ -2180,7 +2292,7 @@ select {
 .bo-match-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 8px; }
 .bo-vs { text-align: center; font-size: 0.72rem; font-style: italic; color: var(--text-faint); margin: 6px 0; }
 .bo-side { }
-.bo-locked { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(0, 194, 168, 0.08); border-radius: 8px; }
+.bo-locked { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: color-mix(in srgb, var(--through) 8%, transparent); border-radius: 2px; }
 .bo-flag { font-size: 1.2rem; }
 .bo-team { font-weight: 700; font-size: 0.92rem; }
 .bo-confirmed { margin-left: auto; font-size: 0.8rem; }
@@ -2188,9 +2300,9 @@ select {
 .bo-cands { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .bo-cand {
   position: relative; display: flex; align-items: center; gap: 6px;
-  padding: 3px 6px; border-radius: 6px; overflow: hidden; font-size: 0.8rem;
+  padding: 3px 6px; border-radius: 2px; overflow: hidden; font-size: 0.8rem;
 }
-.bo-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(0, 194, 168, 0.16); z-index: 0; }
+.bo-bar { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--through) 16%, transparent); z-index: 0; }
 .bo-cand-flag, .bo-cand-name, .bo-pct { position: relative; z-index: 1; }
 .bo-cand-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bo-pct { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text-dim); }
@@ -2199,7 +2311,7 @@ select {
 .bo-count strong { color: var(--accent); }
 .bo-progress { margin: 20px 0; }
 .bo-progress-label { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; }
-.bo-progress-track { height: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.bo-progress-track { height: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
 .bo-progress-fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
 .bo-alive {
   margin-top: 18px; padding: 12px 14px;
@@ -2239,18 +2351,18 @@ select {
 .cal-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cal-btn-primary {
   background: var(--accent); color: var(--accent-ink); text-decoration: none;
-  padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 2px; font-size: 0.8rem; font-weight: 600;
 }
 .cal-btn-ghost {
   background: transparent; border: 1px solid var(--border); color: var(--text-dim);
-  padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; text-decoration: none;
+  padding: 6px 12px; border-radius: 2px; font-size: 0.8rem; cursor: pointer; text-decoration: none;
 }
 .cal-btn-ghost:hover { border-color: var(--accent); color: var(--text); }
 .cal-note { font-size: 0.74rem; color: var(--text-faint); margin: 8px 0 0; line-height: 1.5; }
 .cal-downloads { display: flex; flex-wrap: wrap; gap: 8px; }
 .cal-downloads button {
   background: var(--card); border: 1px solid var(--border); color: var(--text);
-  padding: 9px 13px; border-radius: 9px; font-size: 0.82rem; cursor: pointer;
+  padding: 9px 13px; border-radius: 2px; font-size: 0.82rem; cursor: pointer;
 }
 .cal-downloads button:hover { border-color: var(--accent); }
 
@@ -2270,21 +2382,21 @@ select {
   width: fit-content;
   margin: 3px 0 0;
 }
-.q-in { background: rgba(0, 194, 168, 0.18); color: var(--accent); }
+.q-in { background: color-mix(in srgb, var(--through) 18%, transparent); color: var(--accent); }
 /* Provisional best-third: dashed yellow outline signals "not locked yet". */
 .q-best3 {
-  background: rgba(244, 197, 66, 0.2);
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
   color: var(--gold);
-  border: 1px dashed rgba(244, 197, 66, 0.75);
+  border: 1px dashed color-mix(in srgb, var(--gold) 75%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 .q-out { background: transparent; color: var(--text-faint); }
 /* Guaranteed clinch verdicts (also used as match-card tags). */
-.c-won { background: rgba(244, 197, 66, 0.22); color: var(--gold); }
-.c-silver { background: rgba(176, 186, 201, 0.24); color: var(--silver); }
-.c-in { background: rgba(0, 194, 168, 0.18); color: var(--accent); }
-.c-out { background: rgba(128, 140, 162, 0.18); color: var(--text-dim); }
+.c-won { background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold); }
+.c-silver { background: color-mix(in srgb, var(--silver) 24%, transparent); color: var(--silver); }
+.c-in { background: color-mix(in srgb, var(--through) 18%, transparent); color: var(--accent); }
+.c-out { background: color-mix(in srgb, var(--text-faint) 18%, transparent); color: var(--text-dim); }
 .clinch-tag {
   margin-left: 8px;
   font-size: 0.6rem;
@@ -2317,7 +2429,7 @@ select {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 8px 10px;
   font-size: 0.78rem;
   line-height: 1.45;
@@ -2362,7 +2474,7 @@ select {
   border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 7px 13px;
-  border-radius: 9px;
+  border-radius: 2px;
   font-size: 0.82rem;
   cursor: pointer;
 }
@@ -2510,7 +2622,7 @@ select {
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 .stat-match-list li:last-child .stat-match-row { border-bottom: none; }
 .stat-match-row:hover { background: var(--card-hover); }
@@ -2593,7 +2705,7 @@ select {
   align-items: stretch;
   background: var(--card);
   border: 1.5px solid var(--accent);
-  border-radius: 12px;
+  border-radius: 2px;
   box-shadow: var(--shadow);
   overflow: hidden;
   animation: toast-in 0.25s ease-out;
