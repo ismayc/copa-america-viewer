@@ -140,13 +140,13 @@ describe('ScenariosView', () => {
     // still has two games left.
     render(<ScenariosView matches={lockedSnapshot} />)
     const card = screen.getByText('Group A').closest('.sc-card')
-    expect(card.querySelector('.sc-r32-lock')).toBeInTheDocument()
+    expect(card.querySelector('.sc-entry-lock')).toBeInTheDocument()
     // The bare checkmark carries an accessible label but no "Matchup confirmed" text.
     expect(within(card).getByLabelText('Matchup confirmed')).toBeInTheDocument()
     expect(within(card).queryByText(/Matchup confirmed/)).toBeNull()
     // A wide-open group shows no confirmed matchup yet.
     const open = screen.getByText('Group D').closest('.sc-card')
-    expect(open.querySelector('.sc-r32-lock')).toBeNull()
+    expect(open.querySelector('.sc-entry-lock')).toBeNull()
   })
 
   it('exposes goal steppers once a result is set, and they adjust the score', () => {
