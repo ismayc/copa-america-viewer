@@ -9,6 +9,7 @@ import { FLAG_BY_TEAM } from '../data/teams.js'
 import { useFollow } from '../context/follow.jsx'
 import GroupGamesModal from './GroupGamesModal.jsx'
 import ScalesIcon from './ScalesIcon.jsx'
+import { LEAGUE } from '../config/league.js'
 
 const GROUPS = Object.keys(TEAMS)
 
@@ -222,7 +223,7 @@ export default function Standings({ matches, tz, hideScores, clinch, onGoToMatch
   // (persisted) hides it for those who just want the tables.
   const [showProjection, setShowProjection] = useState(() => {
     try {
-      return localStorage.getItem('copa:asItStands') !== '0'
+      return localStorage.getItem(`${LEAGUE.storageKey}:asItStands`) !== '0'
     } catch {
       return true
     }
@@ -231,7 +232,7 @@ export default function Standings({ matches, tz, hideScores, clinch, onGoToMatch
     setShowProjection((v) => {
       const next = !v
       try {
-        localStorage.setItem('copa:asItStands', next ? '1' : '0')
+        localStorage.setItem(`${LEAGUE.storageKey}:asItStands`, next ? '1' : '0')
       } catch {
         /* ignore */
       }

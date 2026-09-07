@@ -28,6 +28,7 @@ import { BRACKET, groupSlotMap, matchesByNum } from './utils/bracket.js'
 import { detectGoals, goalNotification } from './services/goalNotify.js'
 import { useFollow } from './context/follow.jsx'
 import { DetailContext } from './context/detail.js'
+import { LEAGUE } from './config/league.js'
 
 const REFRESH_MS = 120000 // auto-refresh every 2 minutes when nothing is live
 const LIVE_REFRESH_MS = 30000 // poll every 30s while a match is in progress
@@ -74,7 +75,7 @@ const INITIAL_FILTERS = {
 // Goal-alert preferences, persisted to localStorage. Alerts no longer require
 // Notification permission to be "on": the on-page toasts always work, and the
 // browser-notification channel simply joins in when permission is granted.
-const GOAL_ALERTS_KEY = 'copa:goalAlerts'
+const GOAL_ALERTS_KEY = `${LEAGUE.storageKey}:goalAlerts`
 function readGoalAlerts() {
   try {
     const v = JSON.parse(localStorage.getItem(GOAL_ALERTS_KEY) || '{}')
@@ -109,7 +110,7 @@ export default function App() {
       const next = t === 'light' ? 'dark' : 'light'
       document.documentElement.dataset.theme = next
       try {
-        localStorage.setItem('copa:theme', next)
+        localStorage.setItem(`${LEAGUE.storageKey}:theme`, next)
       } catch {
         /* ignore */
       }

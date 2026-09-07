@@ -6,8 +6,9 @@
 import { VENUES } from '../data/venues.js'
 import { STAGE_LABELS } from '../data/matches.js'
 import { US_BROADCAST } from '../data/broadcast.js'
+import { LEAGUE } from '../config/league.js'
 
-const MATCH_MINUTES = 135
+const MATCH_MINUTES = LEAGUE.matchLengthMinutes
 
 function toICSDate(date) {
   const p = (n) => String(n).padStart(2, '0')
@@ -38,7 +39,7 @@ export function buildICS(match) {
   const end = new Date(start.getTime() + MATCH_MINUTES * 60 * 1000)
   const stageLabel = match.stage === 'Group' ? `Group ${match.group}` : STAGE_LABELS[match.stage]
 
-  const summary = `Copa América: ${match.t1} vs ${match.t2}`
+  const summary = `${LEAGUE.name}: ${match.t1} ${LEAGUE.homeAwaySep} ${match.t2}`
   const location = `${venue.name}, ${venue.city}, ${venue.country}`
   const description = [
     `${stageLabel} · Match ${match.num}`,
@@ -49,10 +50,10 @@ export function buildICS(match) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Copa América 2024 Viewer//EN',
+    `PRODID:${LEAGUE.ics.prodId}`,
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
-    `UID:copa2024-match-${match.num}@copaamericaviewer`,
+    `UID:${LEAGUE.ics.uidPrefix}${match.num}@${LEAGUE.ics.domain}`,
     `DTSTAMP:${toICSDate(new Date())}`,
     `DTSTART:${toICSDate(start)}`,
     `DTEND:${toICSDate(end)}`,
@@ -72,7 +73,7 @@ function buildVEvent(match) {
   const end = new Date(start.getTime() + MATCH_MINUTES * 60 * 1000)
   const stageLabel = match.stage === 'Group' ? `Group ${match.group}` : STAGE_LABELS[match.stage]
   const score = Array.isArray(match.score) ? ` (${match.score[0]}–${match.score[1]})` : ''
-  const summary = `Copa América: ${match.t1} vs ${match.t2}${score}`
+  const summary = `${LEAGUE.name}: ${match.t1} ${LEAGUE.homeAwaySep} ${match.t2}${score}`
   const location = `${venue.name}, ${venue.city}, ${venue.country}`
   const description = [
     `${stageLabel} · Match ${match.num}`,
@@ -80,7 +81,7 @@ function buildVEvent(match) {
   ].join('\\n')
   return [
     'BEGIN:VEVENT',
-    `UID:copa2024-match-${match.num}@copaamericaviewer`,
+    `UID:${LEAGUE.ics.uidPrefix}${match.num}@${LEAGUE.ics.domain}`,
     `DTSTAMP:${toICSDate(new Date())}`,
     `DTSTART:${toICSDate(start)}`,
     `DTEND:${toICSDate(end)}`,
@@ -104,15 +105,15 @@ function downloadText(text, filename) {
 }
 
 export function downloadICS(match) {
-  downloadText(buildICS(match), `copa-america-2024-match-${match.num}.ics`)
+  downloadText(buildICS(match), `${LEAGUE.ics.filenameBase}-match-${match.num}.ics`)
 }
 
 // A whole calendar of matches (used by the "download all / my teams / filtered" buttons).
-export function buildICSCollection(matches, calName = 'Copa América 2024') {
+export function buildICSCollection(matches, calName = LEAGUE.edition) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Copa América 2024 Viewer//EN',
+    `PRODID:${LEAGUE.ics.prodId}`,
     'CALSCALE:GREGORIAN',
     `X-WR-CALNAME:${esc(calName)}`,
     ...matches.map(buildVEvent),
@@ -120,7 +121,11 @@ export function buildICSCollection(matches, calName = 'Copa América 2024') {
   ].join('\r\n')
 }
 
-export function downloadICSCollection(matches, filename = 'copa-america-2024.ics', calName = 'Copa América 2024') {
+export function downloadICSCollection(
+  matches,
+  filename = `${LEAGUE.ics.filenameBase}.ics`,
+  calName = LEAGUE.edition,
+) {
   downloadText(buildICSCollection(matches, calName), filename)
 }
 
