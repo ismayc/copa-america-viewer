@@ -133,9 +133,76 @@ function fixTransposedQuarterFinals(matches) {
   return matches
 }
 
+// Match numbers, keyed by the team pair. The download stamps a UID of
+// `copa2024-match-<num>@copaamericaviewer` (src/utils/ics.js, from LEAGUE.ics);
+// this feed used to build a UID out of the date and teams instead, so
+// subscribing AND downloading put two events in the calendar for every fixture.
+// The bodies now agree, and test/calendar-feed.test.js asserts that against the
+// download path rather than against a second copy of the literal.
+//
+// The table restates src/data/matches.js, in the same spirit as TRANSPOSED
+// above: a Netlify function is kept self-contained, and a test rebuilds this map
+// from the app's own data so a regenerated fixture list cannot drift away from
+// it silently.
+//
+// Keyed on `pairId`, so which side copa.txt lists first cannot change a match's
+// identity. Argentina met Canada twice, in the opener and in a semifinal, and it
+// is the only repeated meeting of the edition; that one pair carries its two
+// dates. The two are 19 days apart, so no plausible kickoff correction can move
+// a fixture from one to the other.
+const MATCH_NUMS = {
+  "Chile|Peru"            : 2,
+  "Jamaica|Mexico"        : 3,
+  "Ecuador|Venezuela"     : 4,
+  "Bolivia|United States" : 5,
+  "Panama|Uruguay"        : 6,
+  "Colombia|Paraguay"     : 7,
+  "Brazil|Costa Rica"     : 8,
+  "Argentina|Chile"       : 9,
+  "Canada|Peru"           : 10,
+  "Mexico|Venezuela"      : 11,
+  "Ecuador|Jamaica"       : 12,
+  "Panama|United States"  : 13,
+  "Bolivia|Uruguay"       : 14,
+  "Brazil|Paraguay"       : 15,
+  "Colombia|Costa Rica"   : 16,
+  "Argentina|Peru"        : 17,
+  "Canada|Chile"          : 18,
+  "Ecuador|Mexico"        : 19,
+  "Jamaica|Venezuela"     : 20,
+  "United States|Uruguay" : 21,
+  "Bolivia|Panama"        : 22,
+  "Costa Rica|Paraguay"   : 23,
+  "Brazil|Colombia"       : 24,
+  "Argentina|Ecuador"     : 25,
+  "Canada|Venezuela"      : 26,
+  "Brazil|Uruguay"        : 27,
+  "Colombia|Panama"       : 28,
+  "Colombia|Uruguay"      : 30,
+  "Canada|Uruguay"        : 31,
+  "Argentina|Colombia"    : 32,
+}
+
+const REPEATED_MEETINGS = {
+  "Argentina|Canada": { '2024-06-20': 1, '2024-07-09': 29 },
+}
+
+// The plain-text feed carries no match numbers, so the number is recovered from
+// the fixture's teams. A pairing the committed data has never seen falls back to
+// the old descriptive body rather than risk colliding with a real match's UID.
+function matchNum(m) {
+  const id = pairId(m.home, m.away)
+  const repeated = REPEATED_MEETINGS[id]
+  return repeated ? repeated[m.date] : MATCH_NUMS[id]
+}
+
 function vevent(m) {
   const end = new Date(m.start.getTime() + MATCH_MS)
-  const uid = `copa2024-${m.date}-${m.home}-${m.away}@copaamericaviewer`.replace(/\s+/g, '_')
+  const num = matchNum(m)
+  const uid =
+    num != null
+      ? `copa2024-match-${num}@copaamericaviewer`
+      : `copa2024-${m.date}-${m.home}-${m.away}@copaamericaviewer`.replace(/\s+/g, '_')
   return [
     'BEGIN:VEVENT',
     `UID:${uid}`,

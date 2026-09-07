@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { parseFixtures, handler } from '../netlify/functions/calendar.js'
 import { MATCHES } from '../src/data/matches.js'
 import { VENUES } from '../src/data/venues.js'
+import { buildICS } from '../src/utils/ics.js'
 
 // A committed snapshot of the real OpenFootball copa.txt, so the parser is
 // exercised against the actual file rather than a hand-made imitation of it.
@@ -120,6 +121,59 @@ describe('handler — the .ics the feed serves', () => {
     // Uruguay–Brazil keeps copa.txt's own (wrong) venue, rather than a half-applied swap.
     const ev = res.body.split('BEGIN:VEVENT').find((e) => e.includes('Uruguay vs Brazil'))
     expect(ev).toContain('State Farm Stadium')
+  })
+
+  // The feed and the download used to stamp different UID bodies for the same
+  // fixture, so a subscriber who had also downloaded a match saw it twice. A UID
+  // is the only thing a calendar client uses to decide "same event", so the two
+  // sources have to agree on all 32 of them.
+
+  it('gives every match the same UID the download would', async () => {
+    vi.stubGlobal('fetch', fetchSnapshot())
+    const body = (await handler({ queryStringParameters: null })).body
+    const fromFeed = [...body.matchAll(/UID:(\S+)/g)].map((x) => x[1].trim())
+    const fromDownload = MATCHES.map((m) => buildICS(m).match(/UID:(\S+)/)[1].trim())
+
+    expect(fromFeed).toHaveLength(MATCHES.length)
+    expect(new Set(fromFeed).size).toBe(MATCHES.length)
+    expect([...fromFeed].sort()).toEqual([...fromDownload].sort())
+  })
+
+  it('tells the two Argentina v Canada meetings apart', async () => {
+    // The opener and a semifinal, the only repeated pairing of the edition and
+    // the reason the number table is not keyed on the pair alone.
+    vi.stubGlobal('fetch', fetchSnapshot())
+    const body = (await handler({ queryStringParameters: { teams: 'canada' } })).body
+    const uids = [...body.matchAll(/UID:(\S+)/g)].map((x) => x[1].trim())
+    expect(uids).toContain('copa2024-match-1@copaamericaviewer')
+    expect(uids).toContain('copa2024-match-29@copaamericaviewer')
+  })
+
+  it('restates the committed fixture list without drifting from it', async () => {
+    // MATCH_NUMS is a copy of src/data/matches.js, so it can go stale. Rebuilding
+    // the pairing here from the app's own data is what catches a regenerated
+    // fixture list: a renumbered or renamed match fails this, not a subscriber's
+    // calendar. Any pair that repeats must be in REPEATED_MEETINGS, and this
+    // fails if a future edit introduces a second one silently.
+    const byPair = new Map()
+    for (const m of MATCHES) {
+      const k = [m.t1, m.t2].sort().join('|')
+      byPair.set(k, (byPair.get(k) || 0) + 1)
+    }
+    expect([...byPair].filter(([, n]) => n > 1).map(([k]) => k)).toEqual(['Argentina|Canada'])
+
+    vi.stubGlobal('fetch', fetchSnapshot())
+    const body = (await handler({ queryStringParameters: null })).body
+    expect(body).not.toMatch(/UID:copa2024-\d{4}-/)
+    expect([...body.matchAll(/UID:copa2024-match-(\d+)@/g)].map((x) => Number(x[1])).sort((a, b) => a - b))
+      .toEqual(MATCHES.map((m) => m.num).sort((a, b) => a - b))
+  })
+
+  it('falls back to teams and date for a pairing the committed data has never seen', async () => {
+    const invented = SNAPSHOT + '\nFri Jun 21 21:00 UTC-5  Narnia 2-0 Gondor @ Somewhere\n'
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, text: async () => invented })))
+    const body = (await handler({ queryStringParameters: null })).body
+    expect(body).toContain('UID:copa2024-2024-06-21-Narnia-Gondor@copaamericaviewer')
   })
 })
 
