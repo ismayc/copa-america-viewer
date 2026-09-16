@@ -42,7 +42,7 @@
 import { writeFileSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { getText, getJson } from './lib/fetch.mjs'
+import { getText, getJson, mapLimit, CONCURRENCY } from './lib/fetch.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DRY = process.argv.includes('--dry')
@@ -651,11 +651,29 @@ function renderVenues(venues) {
 
 // ---------------------------------------------------------------------------
 
+// ESPN dropped hyphenated date-range scoreboard queries in September 2026 (every
+// `dates=A-B` now answers HTTP 400, even a same-day `A-A`), so fetch each day of the
+// tournament window on its own, concurrently, and merge the events by id.
+async function fetchEspnBoard() {
+  const [from, to] = EDITION.window.split('-')
+  const at = (s) => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8))
+  const days = []
+  for (let t = at(from); t <= at(to); t += 86400000) {
+    days.push(new Date(t).toISOString().slice(0, 10).replaceAll('-', ''))
+  }
+  const pages = await mapLimit(days, CONCURRENCY, (day) =>
+    getJson(`${ESPN}/scoreboard?dates=${day}&limit=200`),
+  )
+  const byId = new Map()
+  for (const d of pages) for (const ev of d.events || []) byId.set(ev.id, ev)
+  return { events: [...byId.values()] }
+}
+
 async function main() {
   console.log(`Copa América ${EDITION.year} — fetching ESPN + OpenFootball…`)
 
   const [espnDoc, ofText] = await Promise.all([
-    getJson(`${ESPN}/scoreboard?dates=${EDITION.window}&limit=200`),
+    fetchEspnBoard(),
     getText(OPENFOOTBALL),
   ])
 
