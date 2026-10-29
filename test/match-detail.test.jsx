@@ -214,6 +214,14 @@ describe('MatchDetail live states', () => {
     expect(screen.getByText(/Match 1/)).toBeInTheDocument()
   })
 
+  it('shows only LIVE in the header until the score is revealed in spoiler-free mode', () => {
+    const m = { ...groupMatch, live: { clock: "ET 105'", detail: 'Extra Time' }, score: [1, 1] }
+    const { container } = renderDetail({ match: m, hideScores: true })
+    expect(container.querySelector('.md-live')).toHaveTextContent(/^● LIVE$/)
+    fireEvent.click(screen.getByText(/reveal/, { selector: '.md-score button' }))
+    expect(container.querySelector('.md-live')).toHaveTextContent("ET 105'")
+  })
+
   it('renders "Delayed" (not LIVE) when inside the window but no live feed yet', () => {
     vi.useFakeTimers()
     try {

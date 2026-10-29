@@ -17,6 +17,22 @@ describe('LiveBadge', () => {
     expect(badge).toHaveClass('badge-live')
   })
 
+  // Spoiler-free mode: a minute that later reads "ET" or "90+3'" gives away a long or close match.
+  it('shows only LIVE, with no clock or detail in the label or tooltip, when scores are hidden', () => {
+    render(<LiveBadge match={{ live: { clock: "ET 105’", detail: 'ET 105’ - Extra Time' } }} hideScores />)
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveTextContent(/^● LIVE$/)
+    expect(badge).toHaveAttribute('aria-label', 'Live')
+    expect(badge).toHaveAttribute('title', 'Live')
+  })
+
+  it('keeps the delayed word but drops its detail when scores are hidden', () => {
+    render(<LiveBadge match={{ live: { delayed: true, label: 'Suspended', detail: "Suspended at 90+3’" } }} hideScores />)
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveTextContent('Suspended')
+    expect(badge).toHaveAttribute('title', 'Suspended')
+  })
+
   it('falls back to LIVE text and default labels when clock/detail are missing', () => {
     render(<LiveBadge match={{ live: {} }} className="custom" />)
     const badge = screen.getByRole('status')

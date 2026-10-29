@@ -37,6 +37,18 @@ describe('NextMatch — stacking multiple live matches', () => {
     fireEvent.click(rows[0]) // exercises the row's jump handler (no day element → no-op)
   })
 
+  it('shows only LIVE on each stacked row in spoiler-free mode', () => {
+    const withClock = (m) => ({ ...m, live: { clock: "ET 105'", detail: 'Extra Time' } })
+    render(
+      <FollowProvider>
+        <NextMatch matches={[withClock(live(a)), withClock(live(b))]} tz="America/New_York" hideScores />
+      </FollowProvider>,
+    )
+    const badges = [...document.querySelectorAll('.nm-live-row .badge-live')]
+    expect(badges.map((x) => x.textContent)).toEqual(['● LIVE', '● LIVE'])
+    expect(badges[0]).toHaveAttribute('title', 'Live')
+  })
+
   it('shows only the followed team’s match (no stack) when a single followed team is live', () => {
     localStorage.setItem('copa:followed', JSON.stringify([b.t1]))
     renderNM([live(a), live(b)])

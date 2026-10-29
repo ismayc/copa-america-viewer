@@ -4,6 +4,18 @@ A dated changelog for the Copa América 2024 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-10-29
+
+- **Spoiler-free mode no longer gives away extra time, a close match, or the champion.**
+  With scores hidden, a live match still showed ESPN's minute (for example "90+3'" or
+  "ET 105'") in its badge, tooltip, and screen-reader label, and a badge that switches
+  to "ET" says the match went long. Live badges now read only "LIVE" on the match card,
+  the Week view, the day and group pop-ups, the bracket, the match popout (until you
+  tap reveal), and the next-match banner. A paused match keeps its "Delayed" or
+  "Suspended" word but loses the minute. The next-match banner also stopped crowning
+  the champion after the Final while scores are hidden. Scores, "AET", and penalty
+  results were already hidden.
+
 ## 2026-09-17
 
 - **The knockout bracket now draws elbow connectors between rounds.** Each match

@@ -53,6 +53,20 @@ describe('NextMatch', () => {
     expect(screen.getByText(/Runners-up:.*Colombia/)).toBeInTheDocument()
   })
 
+  it('does not crown the champion in spoiler-free mode', () => {
+    vi.setSystemTime(new Date('2024-08-01T00:00:00Z'))
+    const final = { num: 32, stage: 'Final', t1: 'Argentina', t2: 'Colombia', venue: 'hardrock', ko: '2024-07-14T21:15:00-04:00', score: [3, 2] }
+    localStorage.setItem('copa:followed', '[]')
+    render(
+      <FollowProvider>
+        <NextMatch matches={[final]} tz={TZ} hideScores />
+      </FollowProvider>,
+    )
+    expect(screen.queryByText('Copa América champions!')).not.toBeInTheDocument()
+    expect(screen.queryByText('Argentina')).not.toBeInTheDocument()
+    expect(screen.getByText(/tournament has concluded/)).toBeInTheDocument()
+  })
+
   it('falls back to the generic message when the Final is not yet decided', () => {
     vi.setSystemTime(new Date('2024-08-01T00:00:00Z'))
     // Final in the past but no score recorded → no champion to crown.

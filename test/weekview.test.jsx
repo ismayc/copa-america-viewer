@@ -80,6 +80,13 @@ describe('WeekView', () => {
     expect(screen.getByText('v')).toBeInTheDocument()
   })
 
+  it('shows only LIVE, never the clock, on a live cell while scores are hidden', () => {
+    const m = { ...MATCHES.find((x) => x.stage === 'Group'), live: { clock: "ET 105'", detail: 'Extra Time' }, score: [1, 1] }
+    renderWeek({ allMatches: [m], shown: [m], dayHidden: () => true })
+    expect(document.querySelector('.wc-live')).toHaveTextContent(/^● LIVE$/)
+    expect(document.querySelector('.wc-live')).toHaveAttribute('title', 'Live')
+  })
+
   it('opens a day pop-up from the date-header button and drills into match detail', () => {
     const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
     const m = { ...MATCHES.find((x) => x.stage === 'Group'), ko: `${todayKey}T18:00:00-04:00`, score: [2, 1] }

@@ -82,6 +82,17 @@ describe('MatchCard rendering states', () => {
     expect(screen.getByText('● LIVE')).toBeInTheDocument()
   })
 
+  // Spoiler-free mode: the minute (later "ET 105'") hints at a long or close match.
+  it('shows only LIVE, never the clock, while the score is hidden (until revealed)', () => {
+    const m = { ...groupMatch, live: { clock: "90+3'", detail: "90'+3' - 2nd Half" }, score: [1, 1] }
+    const { container } = renderCard({ match: m, hidden: true })
+    const badge = container.querySelector('.badge-live')
+    expect(badge).toHaveTextContent(/^● LIVE$/)
+    expect(badge).toHaveAttribute('title', 'Live')
+    fireEvent.click(screen.getByTitle('Reveal score'))
+    expect(container.querySelector('.badge-live')).toHaveTextContent("90+3'")
+  })
+
   it('renders an optional per-match note by the kickoff time', () => {
     renderCard({ match: { ...groupMatch, note: 'Delayed start due to weather' } })
     expect(screen.getByText('(Delayed start due to weather)')).toBeInTheDocument()
