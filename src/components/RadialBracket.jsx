@@ -155,7 +155,9 @@ export default function RadialBracket({ matches, tz, hideScores }) {
     if (!m) return null
     return side === 0 ? m.t1 : m.t2
   }
-  const winnerOf = (n) => (byNum[n] ? decideMatch(byNum[n])?.winner || null : null)
+  // Winners advancing a ring (and the crowned champion) are results, so spoiler-free
+  // mode leaves those nodes empty.
+  const winnerOf = (n) => (byNum[n] && !hideScores ? decideMatch(byNum[n])?.winner || null : null)
 
   // Position lookups.
   const leafPos = (s) => toXY(leafAngleOf[`${s.n}:${s.side}`], LEAF_R)
@@ -213,7 +215,8 @@ export default function RadialBracket({ matches, tz, hideScores }) {
   // knocked-out sides fade so who's alive reads at a glance. Once the Final is
   // done the set is empty and nothing dims (the finished bracket stays vivid).
   const active = useMemo(() => activeTeams(matches), [matches])
-  const isDimmed = (team) => active.size > 0 && Boolean(team) && !active.has(team)
+  // Fading knocked-out sides says who lost, so it stays off while scores are hidden.
+  const isDimmed = (team) => !hideScores && active.size > 0 && Boolean(team) && !active.has(team)
 
   // The champion's golden trail: once the Final is decided (and no manual path
   // is selected), light their whole route from the outer ring to the trophy.
@@ -234,8 +237,9 @@ export default function RadialBracket({ matches, tz, hideScores }) {
   // from decideMatch's loser rather than from the winner rings above).
   const THIRD_NUM = BRACKET.third[0]
   const [SF_LEFT, SF_RIGHT] = [BRACKET.left.SF[0], BRACKET.right.SF[0]]
-  const thirdA = byNum[SF_LEFT] ? decideMatch(byNum[SF_LEFT])?.loser : null
-  const thirdB = byNum[SF_RIGHT] ? decideMatch(byNum[SF_RIGHT])?.loser : null
+  // The third-place pair are the semifinal losers, so they stay empty while scores are hidden.
+  const thirdA = byNum[SF_LEFT] && !hideScores ? decideMatch(byNum[SF_LEFT])?.loser : null
+  const thirdB = byNum[SF_RIGHT] && !hideScores ? decideMatch(byNum[SF_RIGHT])?.loser : null
   const thirdWinner = winnerOf(THIRD_NUM)
   const THIRD_Y = 596
 
