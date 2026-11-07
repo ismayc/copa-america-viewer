@@ -4,6 +4,10 @@ A dated changelog for the Copa América 2024 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-11-07
+
+- **The README is up to date again.** It now lists all eight views, covers the wider spoiler-free mode, and points to chesterismay.com.
+
 ## 2026-11-02
 
 - **The Week view fits a phone.** It shows one day per row and drops days with no matches. Seven side-by-side columns used to cut long team names in half, and a week whose games came late opened on blank columns.
